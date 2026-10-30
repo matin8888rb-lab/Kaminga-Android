@@ -361,7 +361,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                     Text(comic.title, color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Spacer(Modifier.height(3.dp))
                     Text(comic.genre, color = comic.accent, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("${comic.chapters} فصل", color = Muted, fontSize = 10.sp)
+                    Text("${comic.chapters} چپتر", color = Muted, fontSize = 10.sp)
                 }
             }
         }
@@ -394,7 +394,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
             Spacer(Modifier.height(7.dp))
             Text(comic.description, color = Muted, fontSize = 12.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, lineHeight = 18.sp)
             Spacer(Modifier.height(8.dp))
-            Text(comic.genre + " • " + comic.chapters + " فصل", color = Cyan, fontSize = 11.sp)
+            Text(comic.genre + " • " + comic.chapters + " چپتر", color = Cyan, fontSize = 11.sp)
         }
     }
 }
@@ -409,7 +409,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
             Spacer(Modifier.height(5.dp))
             Text(comic.description, color = Muted, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(5.dp))
-            Text(comic.genre + " • " + comic.chapters + " فصل", color = Cyan, fontSize = 10.sp)
+            Text(comic.genre + " • " + comic.chapters + " چپتر", color = Cyan, fontSize = 10.sp)
         }
         Icon(Icons.Default.ChevronLeft, null, tint = Muted)
     }
@@ -526,7 +526,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                     Text(comic.title, color = Ink, fontSize = 23.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
                     Text(comic.genre, color = Cyan, fontSize = 13.sp)
-                    Text(comic.chapters.toString() + " فصل • نسخه نمایشی", color = Muted, fontSize = 11.sp)
+                    Text(comic.chapters.toString() + " چپتر • نسخه نمایشی", color = Muted, fontSize = 11.sp)
                 }
             }
             Spacer(Modifier.height(22.dp))
@@ -537,7 +537,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
             Button(onClick = { onRead(resumeChapter) }, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink), shape = RoundedCornerShape(15.dp)) {
                 Icon(Icons.Default.MenuBook, null)
                 Spacer(Modifier.width(8.dp))
-                Text(if (resumeChapter > 1) "ادامه از فصل $resumeChapter" else "شروع مطالعه", fontWeight = FontWeight.Bold)
+                Text(if (resumeChapter > 1) "ادامه از چپتر $resumeChapter" else "شروع مطالعه", fontWeight = FontWeight.Bold)
             }
             OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp), shape = RoundedCornerShape(15.dp)) {
                 Icon(if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, null, tint = Cyan)
@@ -549,11 +549,11 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                 Spacer(Modifier.width(9.dp))
                 Column(Modifier.weight(1f)) {
                     Text("مدیریت صفحات تصویری", color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                    Text("$importedImagePages صفحه در فصل‌های این عنوان", color = Muted, fontSize = 10.sp)
+                    Text("$importedImagePages صفحه در چپتر‌های این عنوان", color = Muted, fontSize = 10.sp)
                 }
             }
             Text(
-                "هر فصل می‌تواند مجموعه تصاویر مستقل داشته باشد. تصاویر فقط در حافظه همین دستگاه ذخیره می‌شوند.",
+                "هر چپتر می‌تواند مجموعه تصاویر مستقل داشته باشد. تصاویر فقط در حافظه همین دستگاه ذخیره می‌شوند.",
                 color = Muted,
                 fontSize = 11.sp,
                 lineHeight = 17.sp,
@@ -572,9 +572,9 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                 modifier = Modifier.padding(top = 7.dp)
             )
             Spacer(Modifier.height(20.dp))
-            Text("فصل‌ها", color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("چپتر‌ها", color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(7.dp))
-            Text("یک فصل را برای باز کردن پیش‌نمایش انتخاب کن.", color = Muted, fontSize = 12.sp)
+            Text("یک چپتر را برای باز کردن پیش‌نمایش انتخاب کن.", color = Muted, fontSize = 12.sp)
             Spacer(Modifier.height(10.dp))
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 (1..comic.chapters).toList().chunked(2).forEach { pair ->
@@ -587,7 +587,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                                     shape = RoundedCornerShape(10.dp),
                                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)
                                 ) {
-                                    Text("فصل $chapterNumber", color = Ink, fontSize = 12.sp)
+                                    Text("چپتر $chapterNumber", color = Ink, fontSize = 12.sp)
                                 }
                                 TextButton(
                                     onClick = { onImportImages(chapterNumber) },
@@ -604,7 +604,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                                         modifier = Modifier.fillMaxWidth(),
                                         contentPadding = PaddingValues(2.dp)
                                     ) {
-                                        Text("حذف صفحات این فصل", color = Color(0xFFCC6677), fontSize = 10.sp)
+                                        Text("حذف صفحات این چپتر", color = Color(0xFFCC6677), fontSize = 10.sp)
                                     }
                                 }
                             }
@@ -626,9 +626,9 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
         else -> "نور ماه روی پنجره افتاده بود و دو جهان برای لحظه‌ای به هم نزدیک شدند. انتخاب بعدی می‌توانست همه‌چیز را عوض کند."
     }
     return listOf(
-        "فصل $chapter\n\n$opening",
+        "چپتر $chapter\n\n$opening",
         "قدم بعدی آسان نبود. هر نشانه پرسش تازه‌ای می‌ساخت و قهرمان داستان باید تصمیم می‌گرفت به کدام صدا اعتماد کند.\n\n${comic.description}",
-        "پایان بخش اول\n\nراز هنوز کامل آشکار نشده است. ادامه‌ی مسیر در فصل بعدی منتظر توست.\n\nاین متن نمونه برای آزمایش محیط مطالعه است؛ صفحات اصلی و دارای مجوز هنوز اضافه نشده‌اند."
+        "پایان بخش اول\n\nراز هنوز کامل آشکار نشده است. ادامه‌ی مسیر در چپتر بعدی منتظر توست.\n\nاین متن نمونه برای آزمایش محیط مطالعه است؛ صفحات اصلی و دارای مجوز هنوز اضافه نشده‌اند."
     )
 }
 
@@ -655,7 +655,7 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowForward, "بازگشت", tint = Ink) }
             Column(Modifier.weight(1f)) {
                 Text(comic.title, color = Ink, fontWeight = FontWeight.Bold)
-                Text("فصل $chapter از ${comic.chapters}", color = Muted, fontSize = 11.sp)
+                Text("چپتر $chapter از ${comic.chapters}", color = Muted, fontSize = 11.sp)
             }
             Text("${page + 1}/$pageCount", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
@@ -696,7 +696,7 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
                     enabled = page > 0 || (!hasImages && chapter > 1),
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
-                ) { Text(if (page > 0 || hasImages) "صفحه قبل" else "فصل قبلی") }
+                ) { Text(if (page > 0 || hasImages) "صفحه قبل" else "چپتر قبلی") }
                 Button(
                     onClick = {
                         if (page < pageCount - 1) {
@@ -708,7 +708,7 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink)
-                ) { Text(if (page < pageCount - 1 || hasImages) "صفحه بعد" else "فصل بعدی") }
+                ) { Text(if (page < pageCount - 1 || hasImages) "صفحه بعد" else "چپتر بعدی") }
             }
         } else {
             LazyColumn(
@@ -740,14 +740,14 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
                     enabled = !hasImages && chapter > 1,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
-                ) { Text("فصل قبلی") }
+                ) { Text("چپتر قبلی") }
                 Button(
                     onClick = onNext,
                     enabled = !hasImages && chapter < comic.chapters,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink)
-                ) { Text("فصل بعدی") }
+                ) { Text("چپتر بعدی") }
             }
         }
         Spacer(Modifier.height(6.dp))
