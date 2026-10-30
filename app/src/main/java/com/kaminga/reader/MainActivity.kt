@@ -152,7 +152,7 @@ private fun KamingaApp() {
                         initialPage = preferences.getInt("page_${reading!!.title}_$readingChapter", 0),
                         mode = mode,
                         onMode = { mode = it },
-                        isBookmarked = bookmarks.contains("${reading!!.title}#$readingChapter#${preferences.getInt("page_${reading!!.title}_$readingChapter", 0)}"),
+                        isBookmarked = { page -> bookmarks.contains("${reading!!.title}#$readingChapter#$page") },
                         onToggleBookmark = { page ->
                             val key = "${reading!!.title}#$readingChapter#$page"
                             if (bookmarks.contains(key)) bookmarks.remove(key) else bookmarks.add(key)
@@ -650,7 +650,7 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
     initialPage: Int,
     mode: String,
     onMode: (String) -> Unit,
-    isBookmarked: Boolean,
+    isBookmarked: (Int) -> Boolean,
     onToggleBookmark: (Int) -> Unit,
     onPageChange: (Int) -> Unit,
     onPrevious: () -> Unit,
@@ -672,7 +672,7 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
             }
             Text("${page + 1}/$pageCount", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             IconButton(onClick = { onToggleBookmark(page) }) {
-                Icon(if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, contentDescription = "نشانک این صفحه", tint = if (isBookmarked) Cyan else Muted)
+                Icon(if (isBookmarked(page)) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, contentDescription = "نشانک این صفحه", tint = if (isBookmarked(page)) Cyan else Muted)
             }
         }
         LinearProgressIndicator(
@@ -773,7 +773,7 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
             }
         }
         Spacer(Modifier.height(6.dp))
-        Text(if (isBookmarked) "این صفحه در نشانک‌ها ذخیره شده است" else "برای ذخیره این صفحه، آیکون نشانک بالای صفحه را بزن", color = Muted, fontSize = 10.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Text(if (isBookmarked(page)) "این صفحه در نشانک‌ها ذخیره شده است" else "برای ذخیره این صفحه، آیکون نشانک بالای صفحه را بزن", color = Muted, fontSize = 10.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
         Text(
             if (hasImages) "صفحات تصویری واردشده از گوشی • برای استفاده فقط محتوای مجاز وارد کن"
             else "محتوای نمونه برای آزمایش مطالعه • می‌توانی صفحات تصویری را از جزئیات اثر وارد کنی",
