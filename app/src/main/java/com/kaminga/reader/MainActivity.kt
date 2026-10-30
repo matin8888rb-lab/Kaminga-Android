@@ -52,7 +52,12 @@ private val comics = listOf(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.statusBarColor = android.graphics.Color.rgb(241, 247, 250)\n        window.navigationBarColor = android.graphics.Color.rgb(241, 247, 250)\n        if (android.os.Build.VERSION.SDK_INT >= 26) {\n            window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR\n        }\n        setContent { KamingaApp() }
+        window.statusBarColor = android.graphics.Color.rgb(241, 247, 250)
+        window.navigationBarColor = android.graphics.Color.rgb(241, 247, 250)
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        }
+        setContent { KamingaApp() }
     }
 }
 
@@ -65,7 +70,14 @@ private fun KamingaApp() {
     var reading by remember { mutableStateOf<Comic?>(null) }
     var readingChapter by rememberSaveable { mutableIntStateOf(1) }
     var mode by rememberSaveable { mutableStateOf("صفحه‌ای") }
-    val context = LocalContext.current\n    BackHandler(enabled = reading != null || selected != null || tab != "خانه") {\n        when {\n            reading != null -> reading = null\n            selected != null -> selected = null\n            tab != "خانه" -> tab = "خانه"\n        }\n    }
+    val context = LocalContext.current
+    BackHandler(enabled = reading != null || selected != null || tab != "خانه") {
+        when {
+            reading != null -> reading = null
+            selected != null -> selected = null
+            tab != "خانه" -> tab = "خانه"
+        }
+    }
     val preferences = remember { context.getSharedPreferences("kaminga_local", Context.MODE_PRIVATE) }
     val saved = remember {
         mutableStateListOf<String>().apply {
