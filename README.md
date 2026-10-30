@@ -4,14 +4,15 @@ A native Android comic-reader prototype built with Kotlin and Jetpack Compose.
 
 ## Implemented in the current prototype
 - Light blue / mint-green interface and launcher icon.
-- Home screen with horizontal content rails.
-- Search by title, English title, and genre, plus genre filters.
+- Home screen with horizontal content rails and a recently opened / continue-reading rail.
+- Search by Persian title, English title, and genre, plus genre filters, result count, and clear-filter action.
 - Comic detail screens and selectable demo chapters.
 - Local saved-library state.
-- Local reading chapter progress and a “continue reading” action.
+- Local chapter and page progress, plus a “continue reading” action.
 - A reader with page-by-page and continuous text layouts.
 - Android back navigation between reader, details, tabs, and home.
 - Local storage of demo text previews for offline testing; downloaded previews appear in the library.
+- A short on-screen error message if saving a preview fails.
 
 ## Important limitations
 - Titles, covers, and chapter pages are placeholders/demo content, not real licensed comics.
