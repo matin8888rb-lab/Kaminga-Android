@@ -327,61 +327,88 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
     }
 }
 
+private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
+    val opening = when (comic.genre) {
+        "علمی‌تخیلی" -> "در لبه‌ی ایستگاه، چراغ‌های هشدار یکی پس از دیگری روشن شدند. پیام ناشناس فقط یک جمله داشت: «به آسمان اعتماد نکن.»"
+        "ابرقهرمانی" -> "شهر آرام به نظر می‌رسید، اما صدای آژیر از خیابان دوردست می‌آمد. او می‌دانست این بار نمی‌تواند پشت سایه‌ها پنهان بماند."
+        "معمایی" -> "روی میز، یادداشتی بی‌امضا کنار ساعت متوقف‌شده قرار داشت. سرنخ کوچک بود، اما تمام جزئیات اتاق را تغییر می‌داد."
+        "مانگا" -> "باد از میان درختان گذشت و برگ‌ها را روی مسیر سنگی پخش کرد. سفر تازه آغاز شده بود و پاسخ‌ها هنوز دور بودند."
+        else -> "نور ماه روی پنجره افتاده بود و دو جهان برای لحظه‌ای به هم نزدیک شدند. انتخاب بعدی می‌توانست همه‌چیز را عوض کند."
+    }
+    return listOf(
+        "فصل $chapter\n\n$opening",
+        "قدم بعدی آسان نبود. هر نشانه پرسش تازه‌ای می‌ساخت و قهرمان داستان باید تصمیم می‌گرفت به کدام صدا اعتماد کند.\n\n${comic.description}",
+        "پایان بخش اول\n\nراز هنوز کامل آشکار نشده است. ادامه‌ی مسیر در فصل بعدی منتظر توست.\n\nاین متن نمونه برای آزمایش محیط مطالعه است؛ صفحات اصلی و دارای مجوز هنوز اضافه نشده‌اند."
+    )
+}
+
 @Composable private fun ReaderScreen(comic: Comic, chapter: Int, mode: String, onMode: (String) -> Unit, onPrevious: () -> Unit, onNext: () -> Unit, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(18.dp)) {
+    var page by rememberSaveable(comic.title, chapter) { mutableIntStateOf(0) }
+    val pages = remember(comic.title, chapter) { demoChapterPages(comic, chapter) }
+    Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowForward, "بازگشت", tint = Ink) }
-            Column { Text(comic.title, color = Ink, fontWeight = FontWeight.Bold); Text("فصل $chapter از ${comic.chapters} • پیش‌نمایش", color = Muted, fontSize = 11.sp) }
+            Column(Modifier.weight(1f)) {
+                Text(comic.title, color = Ink, fontWeight = FontWeight.Bold)
+                Text("فصل $chapter از ${comic.chapters}", color = Muted, fontSize = 11.sp)
+            }
+            Text("${page + 1}/${pages.size}", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
-        Spacer(Modifier.height(15.dp))
+        Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(14.dp)).padding(5.dp)) {
             listOf("صفحه‌ای", "پیوسته").forEach { item ->
-                Box(Modifier.weight(1f).background(if (mode == item) PanelHigh else Color.Transparent, RoundedCornerShape(10.dp)).clickable { onMode(item) }.padding(11.dp), contentAlignment = Alignment.Center) { Text(item, color = if (mode == item) Cyan else Muted, fontWeight = FontWeight.SemiBold) }
-            }
-        }
-        Spacer(Modifier.height(15.dp))
-        Box(Modifier.fillMaxWidth().weight(1f).background(Brush.verticalGradient(listOf(PanelHigh, Panel)), RoundedCornerShape(20.dp)).padding(20.dp), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(comic.symbol, color = comic.accent, fontSize = 72.sp)
-                Spacer(Modifier.height(15.dp))
-                Text(comic.english, color = Ink, fontSize = 24.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                Text("پیش‌نمایش محیط مطالعه", color = Cyan, fontSize = 13.sp)
-                Spacer(Modifier.height(22.dp))
-                Text("فصل $chapter", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text("حالت " + mode + " انتخاب شده است.", color = Muted, fontSize = 13.sp)
-                Spacer(Modifier.height(8.dp))
-                Text("این پیش‌نمایش است؛ صفحات واقعی کمیک هنوز اضافه نشده‌اند.", color = Muted, fontSize = 11.sp, lineHeight = 18.sp)
+                Box(Modifier.weight(1f).background(if (mode == item) PanelHigh else Color.Transparent, RoundedCornerShape(10.dp)).clickable { onMode(item) }.padding(10.dp), contentAlignment = Alignment.Center) {
+                    Text(item, color = if (mode == item) Cyan else Muted, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
         Spacer(Modifier.height(12.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = onPrevious, enabled = chapter > 1, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text("فصل قبلی") }
-            Button(onClick = onNext, enabled = chapter < comic.chapters, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Night)) { Text("فصل بعدی") }
-        }
-        Spacer(Modifier.height(8.dp))
-        Text("نسخه نمایشی • محتوای دارای مجوز باید اضافه شود", color = Muted, fontSize = 11.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
-    }
-}
-
-@Composable private fun AccountScreen(modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize().padding(22.dp)) {
-        Text("حساب کاربری", color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
-        Text("پروفایل کامینگا در حال آماده‌سازی است.", color = Muted, fontSize = 13.sp)
-        Spacer(Modifier.height(24.dp))
-        Box(Modifier.size(76.dp).background(PanelHigh, CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Person, null, tint = Cyan, modifier = Modifier.size(40.dp)) }
-        Spacer(Modifier.height(18.dp))
-        Text("ورود و ثبت‌نام هنوز فعال نیست", color = Ink, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        Spacer(Modifier.height(8.dp))
-        Text("در مرحله بعد معماری حساب کاربری را بررسی می‌کنیم. تأیید پیامکی به سرویس جداگانه و احتمالاً هزینه نیاز دارد.", color = Muted, fontSize = 13.sp, lineHeight = 21.sp)
-        Spacer(Modifier.height(20.dp))
-        Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(16.dp)).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Security, null, tint = Purple)
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text("امنیت و حریم خصوصی", color = Ink, fontWeight = FontWeight.SemiBold)
-                Text("اطلاعات حساس در نسخه نمایشی ذخیره نمی‌شود.", color = Muted, fontSize = 11.sp)
+        if (mode == "صفحه‌ای") {
+            Column(
+                Modifier.fillMaxWidth().weight(1f).background(Panel, RoundedCornerShape(20.dp)).padding(22.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Cover(comic, Modifier.fillMaxWidth().height(130.dp))
+                Spacer(Modifier.height(22.dp))
+                Text("صفحه ${page + 1}", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(10.dp))
+                Text(pages[page], color = Ink, fontSize = 16.sp, lineHeight = 29.sp)
+            }
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = { page = (page - 1).coerceAtLeast(0) }, enabled = page > 0, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text("صفحه قبل") }
+                Button(
+                    onClick = { if (page < pages.lastIndex) page++ else if (chapter < comic.chapters) onNext() },
+                    enabled = page < pages.lastIndex || chapter < comic.chapters,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink)
+                ) { Text(if (page < pages.lastIndex) "صفحه بعد" else "فصل بعدی") }
+            }
+        } else {
+            LazyColumn(
+                Modifier.weight(1f).fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(bottom = 8.dp)
+            ) {
+                items(pages.size) { index ->
+                    Column(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(18.dp)).padding(18.dp)) {
+                        Text("صفحه ${index + 1}", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Spacer(Modifier.height(8.dp))
+                        if (index == 0) Cover(comic, Modifier.fillMaxWidth().height(120.dp))
+                        Spacer(Modifier.height(10.dp))
+                        Text(pages[index], color = Ink, fontSize = 15.sp, lineHeight = 27.sp)
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onPrevious, enabled = chapter > 1, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text("فصل قبلی") }
+                Button(onClick = onNext, enabled = chapter < comic.chapters, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink)) { Text("فصل بعدی") }
             }
         }
+        Spacer(Modifier.height(6.dp))
+        Text("محتوای نمونه برای آزمایش مطالعه • کمیک اصلی هنوز اضافه نشده", color = Muted, fontSize = 10.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
     }
 }
