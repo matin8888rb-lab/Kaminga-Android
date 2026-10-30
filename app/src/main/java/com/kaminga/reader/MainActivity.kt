@@ -2,7 +2,11 @@ package com.kaminga.reader
 
 import android.os.Bundle
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -23,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val Night = Color(0xFFF1F7FA) // روشنِ آبیِ خیلی ملایم
 private val Panel = Color(0xFFFFFFFF)
@@ -89,6 +97,34 @@ private fun KamingaApp() {
             addAll(preferences.getStringSet("downloaded_comics", emptySet())?.toList() ?: emptyList())
         }
     }
+    val imagePageCounts = remember {
+        mutableStateMapOf<String, Int>().apply {
+            comics.forEach { comic ->
+                val count = preferences.getInt("image_pages_${comic.title}", 0)
+                if (count > 0) put(comic.title, count)
+            }
+        }
+    }
+    var importTargetTitle by remember { mutableStateOf<String?>(null) }
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        val title = importTargetTitle
+        if (title != null && uris.isNotEmpty()) {
+            val comic = comics.firstOrNull { it.title == title }
+            if (comic != null) {
+                val imported = copyComicImages(context, comic, uris)
+                if (imported > 0) {
+                    imagePageCounts[title] = imported
+                    preferences.edit().putInt("image_pages_$title", imported).apply()
+                    android.widget.Toast.makeText(context, "$imported صفحه تصویری اضافه شد.", android.widget.Toast.LENGTH_SHORT).show()
+                } else {
+                    android.widget.Toast.makeText(context, "تصویرها وارد نشدند؛ فایل‌های تصویری را انتخاب کن.", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        importTargetTitle = null
+    }
     MaterialTheme(colorScheme = lightColorScheme(primary = Purple, secondary = Cyan, background = Night, surface = Panel, onPrimary = Ink, onBackground = Ink, onSurface = Ink)) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Surface(Modifier.fillMaxSize(), color = Night) {
@@ -96,6 +132,7 @@ private fun KamingaApp() {
                     reading != null -> ReaderScreen(
                         comic = reading!!,
                         chapter = readingChapter,
+                        imagePaths = comicImagePaths(context, reading!!),
                         initialPage = preferences.getInt("page_${reading!!.title}_$readingChapter", 0),
                         mode = mode,
                         onMode = { mode = it },
@@ -122,6 +159,11 @@ private fun KamingaApp() {
                         comic = selected!!,
                         isSaved = saved.contains(selected!!.title),
                         isDownloaded = downloaded.contains(selected!!.title),
+                        importedImagePages = imagePageCounts[selected!!.title] ?: 0,
+                        onImportImages = {
+                            importTargetTitle = selected!!.title
+                            imagePicker.launch(arrayOf("image/*"))
+                        },
                         resumeChapter = preferences.getInt("progress_${selected!!.title}", 1).coerceIn(1, selected!!.chapters),
                         onSave = {
                             if (saved.contains(selected!!.title)) saved.remove(selected!!.title) else saved.add(selected!!.title)
@@ -366,6 +408,8 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
     comic: Comic,
     isSaved: Boolean,
     isDownloaded: Boolean,
+    importedImagePages: Int,
+    onImportImages: () -> Unit,
     resumeChapter: Int,
     onSave: () -> Unit,
     onDownload: () -> Unit,
@@ -404,6 +448,22 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                 Spacer(Modifier.width(8.dp))
                 Text(if (isSaved) "حذف از کتابخانه" else "ذخیره در کتابخانه", color = Ink)
             }
+            OutlinedButton(
+                onClick = onImportImages,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp),
+                shape = RoundedCornerShape(15.dp)
+            ) {
+                Icon(Icons.Default.Collections, null, tint = Cyan)
+                Spacer(Modifier.width(8.dp))
+                Text(if (importedImagePages > 0) "مدیریت صفحات تصویری ($importedImagePages)" else "افزودن صفحات تصویری از گوشی", color = Ink)
+            }
+            Text(
+                "می‌توانی تصاویر کمیک مجاز را از حافظه گوشی انتخاب کنی؛ برنامه آن‌ها را داخل خودش ذخیره می‌کند.",
+                color = Muted,
+                fontSize = 11.sp,
+                lineHeight = 17.sp,
+                modifier = Modifier.padding(top = 5.dp)
+            )
             OutlinedButton(onClick = onDownload, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp), shape = RoundedCornerShape(15.dp)) {
                 Icon(if (isDownloaded) Icons.Default.DeleteOutline else Icons.Default.Download, null, tint = Cyan)
                 Spacer(Modifier.width(8.dp))
@@ -460,6 +520,7 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
 @Composable private fun ReaderScreen(
     comic: Comic,
     chapter: Int,
+    imagePaths: List<String>,
     initialPage: Int,
     mode: String,
     onMode: (String) -> Unit,
@@ -469,8 +530,10 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
     onBack: () -> Unit
 ) {
     val pages = remember(comic.title, chapter) { demoChapterPages(comic, chapter) }
-    var page by rememberSaveable(comic.title, chapter) {
-        mutableIntStateOf(initialPage.coerceIn(0, pages.lastIndex))
+    val hasImages = imagePaths.isNotEmpty()
+    val pageCount = if (hasImages) imagePaths.size else pages.size
+    var page by rememberSaveable(comic.title, chapter, imagePaths.size) {
+        mutableIntStateOf(initialPage.coerceIn(0, pageCount - 1))
     }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -479,7 +542,7 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
                 Text(comic.title, color = Ink, fontWeight = FontWeight.Bold)
                 Text("فصل $chapter از ${comic.chapters}", color = Muted, fontSize = 11.sp)
             }
-            Text("${page + 1}/${pages.size}", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text("${page + 1}/$pageCount", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(14.dp)).padding(5.dp)) {
@@ -496,11 +559,15 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Cover(comic, Modifier.fillMaxWidth().height(130.dp))
-                Spacer(Modifier.height(22.dp))
-                Text("صفحه ${page + 1}", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(10.dp))
-                Text(pages[page], color = Ink, fontSize = 16.sp, lineHeight = 29.sp)
+                if (hasImages) {
+                    LocalComicImage(imagePaths[page], Modifier.fillMaxWidth().weight(1f))
+                } else {
+                    Cover(comic, Modifier.fillMaxWidth().height(130.dp))
+                    Spacer(Modifier.height(22.dp))
+                    Text("صفحه ${page + 1}", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(10.dp))
+                    Text(pages[page], color = Ink, fontSize = 16.sp, lineHeight = 29.sp)
+                }
             }
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -509,24 +576,24 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
                         if (page > 0) {
                             page--
                             onPageChange(page)
-                        } else onPrevious()
+                        } else if (!hasImages) onPrevious()
                     },
-                    enabled = page > 0 || chapter > 1,
+                    enabled = page > 0 || (!hasImages && chapter > 1),
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
-                ) { Text(if (page > 0) "صفحه قبل" else "فصل قبلی") }
+                ) { Text(if (page > 0 || hasImages) "صفحه قبل" else "فصل قبلی") }
                 Button(
                     onClick = {
-                        if (page < pages.lastIndex) {
+                        if (page < pageCount - 1) {
                             page++
                             onPageChange(page)
-                        } else if (chapter < comic.chapters) onNext()
+                        } else if (!hasImages && chapter < comic.chapters) onNext()
                     },
-                    enabled = page < pages.lastIndex || chapter < comic.chapters,
+                    enabled = page < pageCount - 1 || (!hasImages && chapter < comic.chapters),
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink)
-                ) { Text(if (page < pages.lastIndex) "صفحه بعد" else "فصل بعدی") }
+                ) { Text(if (page < pageCount - 1 || hasImages) "صفحه بعد" else "فصل بعدی") }
             }
         } else {
             LazyColumn(
@@ -534,28 +601,113 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
-                items(pages.size) { index ->
-                    Column(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(18.dp)).padding(18.dp)) {
-                        Text("صفحه ${index + 1}", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(8.dp))
-                        if (index == 0) Cover(comic, Modifier.fillMaxWidth().height(120.dp))
-                        Spacer(Modifier.height(10.dp))
-                        Text(pages[index], color = Ink, fontSize = 15.sp, lineHeight = 27.sp)
+                items(pageCount) { index ->
+                    if (hasImages) {
+                        LocalComicImage(
+                            imagePaths[index],
+                            Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(18.dp)).padding(6.dp)
+                        )
+                    } else {
+                        Column(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(18.dp)).padding(18.dp)) {
+                            Text("صفحه ${index + 1}", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(8.dp))
+                            if (index == 0) Cover(comic, Modifier.fillMaxWidth().height(120.dp))
+                            Spacer(Modifier.height(10.dp))
+                            Text(pages[index], color = Ink, fontSize = 15.sp, lineHeight = 27.sp)
+                        }
                     }
                 }
             }
             Spacer(Modifier.height(8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onPrevious, enabled = chapter > 1, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text("فصل قبلی") }
-                Button(onClick = onNext, enabled = chapter < comic.chapters, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink)) { Text("فصل بعدی") }
+                OutlinedButton(
+                    onClick = onPrevious,
+                    enabled = !hasImages && chapter > 1,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text("فصل قبلی") }
+                Button(
+                    onClick = onNext,
+                    enabled = !hasImages && chapter < comic.chapters,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink)
+                ) { Text("فصل بعدی") }
             }
         }
         Spacer(Modifier.height(6.dp))
-        Text("محتوای نمونه برای آزمایش مطالعه • کمیک اصلی هنوز اضافه نشده", color = Muted, fontSize = 10.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+        Text(
+            if (hasImages) "صفحات تصویری واردشده از گوشی • برای استفاده فقط محتوای مجاز وارد کن"
+            else "محتوای نمونه برای آزمایش مطالعه • می‌توانی صفحات تصویری را از جزئیات اثر وارد کنی",
+            color = Muted,
+            fontSize = 10.sp,
+            modifier = Modifier.align(Alignment.CenterHorizontally)
+        )
     }
 }
 
 
+
+
+private fun comicImageDirectory(context: Context, comic: Comic) =
+    java.io.File(context.filesDir, "comic_pages_${comic.title.hashCode()}")
+
+private fun comicImagePaths(context: Context, comic: Comic): List<String> =
+    comicImageDirectory(context, comic).listFiles()
+        ?.filter { it.isFile }
+        ?.sortedBy { it.name }
+        ?.map { it.absolutePath }
+        ?: emptyList()
+
+private fun copyComicImages(context: Context, comic: Comic, uris: List<android.net.Uri>): Int {
+    val directory = comicImageDirectory(context, comic)
+    return try {
+        directory.deleteRecursively()
+        directory.mkdirs()
+        var count = 0
+        uris.forEachIndexed { index, uri ->
+            val target = java.io.File(directory, "page_%04d.img".format(index + 1))
+            val copied = context.contentResolver.openInputStream(uri)?.use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+                true
+            } ?: false
+            if (copied) count++
+            else target.delete()
+        }
+        if (count == 0) directory.deleteRecursively()
+        count
+    } catch (_: Exception) {
+        directory.deleteRecursively()
+        0
+    }
+}
+
+@Composable
+private fun LocalComicImage(path: String, modifier: Modifier = Modifier) {
+    val bitmap by produceState<Bitmap?>(initialValue = null, key1 = path) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeFile(path, options)
+                var sample = 1
+                while (options.outWidth / sample > 1800 || options.outHeight / sample > 2600) sample *= 2
+                BitmapFactory.decodeFile(path, BitmapFactory.Options().apply { inSampleSize = sample })
+            } catch (_: Exception) { null }
+        }
+    }
+    if (bitmap != null) {
+        androidx.compose.foundation.Image(
+            bitmap = bitmap!!.asImageBitmap(),
+            contentDescription = "صفحه کمیک",
+            modifier = modifier,
+            contentScale = ContentScale.Fit
+        )
+    } else {
+        Box(modifier.height(180.dp), contentAlignment = Alignment.Center) {
+            Text("این تصویر قابل نمایش نیست.", color = Muted, fontSize = 12.sp)
+        }
+    }
+}
 
 private fun setOfflinePreview(context: Context, comic: Comic, shouldDownload: Boolean): Boolean {
     val prefix = "kaminga_${comic.title.hashCode()}_"
