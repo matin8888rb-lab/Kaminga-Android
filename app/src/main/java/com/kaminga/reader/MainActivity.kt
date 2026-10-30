@@ -715,22 +715,22 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
                             onPageChange(page)
                         } else if (!hasImages) onPrevious()
                     },
-                    enabled = page > 0 || (!hasImages && chapter > 1),
+                    enabled = page > 0 || chapter > 1,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
-                ) { Text(if (page > 0 || hasImages) "صفحه قبل" else "چپتر قبلی") }
+                ) { Text(if (page > 0) "صفحه قبل" else "چپتر قبلی") }
                 Button(
                     onClick = {
                         if (page < pageCount - 1) {
                             page++
                             onPageChange(page)
-                        } else if (!hasImages && chapter < comic.chapters) onNext()
+                        } else if (chapter < comic.chapters) onNext()
                     },
-                    enabled = page < pageCount - 1 || (!hasImages && chapter < comic.chapters),
+                    enabled = page < pageCount - 1 || chapter < comic.chapters,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink)
-                ) { Text(if (page < pageCount - 1 || hasImages) "صفحه بعد" else "چپتر بعدی") }
+                ) { Text(if (page < pageCount - 1) "صفحه بعد" else "چپتر بعدی") }
             }
         } else {
             LazyColumn(
@@ -759,13 +759,13 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
                     onClick = onPrevious,
-                    enabled = !hasImages && chapter > 1,
+                    enabled = chapter > 1,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
                 ) { Text("چپتر قبلی") }
                 Button(
                     onClick = onNext,
-                    enabled = !hasImages && chapter < comic.chapters,
+                    enabled = chapter < comic.chapters,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink)
