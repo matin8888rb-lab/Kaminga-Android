@@ -100,11 +100,17 @@ private fun KamingaApp() {
                         onMode = { mode = it },
                         onPrevious = {
                             readingChapter = (readingChapter - 1).coerceAtLeast(1)
-                            preferences.edit().putInt("progress_${reading!!.title}", readingChapter).apply()
+                            preferences.edit()
+                                .putInt("progress_${reading!!.title}", readingChapter)
+                                .putLong("opened_${reading!!.title}", System.currentTimeMillis())
+                                .apply()
                         },
                         onNext = {
                             readingChapter = (readingChapter + 1).coerceAtMost(reading!!.chapters)
-                            preferences.edit().putInt("progress_${reading!!.title}", readingChapter).apply()
+                            preferences.edit()
+                                .putInt("progress_${reading!!.title}", readingChapter)
+                                .putLong("opened_${reading!!.title}", System.currentTimeMillis())
+                                .apply()
                         },
                         onBack = { reading = null }
                     )
@@ -123,11 +129,20 @@ private fun KamingaApp() {
                             if (setOfflinePreview(context, comic, shouldDownload)) {
                                 if (shouldDownload) downloaded.add(comic.title) else downloaded.remove(comic.title)
                                 preferences.edit().putStringSet("downloaded_comics", downloaded.toSet()).apply()
+                            } else {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "ذخیره‌سازی انجام نشد؛ دوباره تلاش کن.",
+                                    android.widget.Toast.LENGTH_SHORT
+                                ).show()
                             }
                         },
                         onRead = { chapter ->
                             readingChapter = chapter
-                            preferences.edit().putInt("progress_${selected!!.title}", chapter).apply()
+                            preferences.edit()
+                                .putInt("progress_${selected!!.title}", chapter)
+                                .putLong("opened_${selected!!.title}", System.currentTimeMillis())
+                                .apply()
                             reading = selected
                         },
                         onBack = { selected = null }
@@ -153,7 +168,15 @@ private fun KamingaApp() {
                                 Modifier.padding(padding)
                             )
                             "حساب" -> AccountScreen(Modifier.padding(padding))
-                            else -> HomeScreen(saved.size, { tab = "جست‌وجو" }, { selected = it }, Modifier.padding(padding))
+                            else -> HomeScreen(
+                                savedCount = saved.size,
+                                recentlyRead = comics
+                                    .filter { preferences.getLong("opened_${it.title}", 0L) > 0L }
+                                    .sortedByDescending { preferences.getLong("opened_${it.title}", 0L) },
+                                onSearch = { tab = "جست‌وجو" },
+                                onOpen = { selected = it },
+                                modifier = Modifier.padding(padding)
+                            )
                         }
                     }
                 }
@@ -163,7 +186,13 @@ private fun KamingaApp() {
 }
 
 @Composable
-private fun HomeScreen(savedCount: Int, onSearch: () -> Unit, onOpen: (Comic) -> Unit, modifier: Modifier = Modifier) {
+private fun HomeScreen(
+    savedCount: Int,
+    recentlyRead: List<Comic>,
+    onSearch: () -> Unit,
+    onOpen: (Comic) -> Unit,
+    modifier: Modifier = Modifier
+) {
     LazyColumn(
         modifier.fillMaxSize(),
         contentPadding = PaddingValues(top = 20.dp, bottom = 18.dp),
@@ -190,6 +219,9 @@ private fun HomeScreen(savedCount: Int, onSearch: () -> Unit, onOpen: (Comic) ->
                 Spacer(Modifier.height(5.dp))
                 Text("کمیک، مانگا و مانهوا را کشف کن.", color = Muted, fontSize = 13.sp)
             }
+        }
+        if (recentlyRead.isNotEmpty()) {
+            item { ComicRail("ادامه مطالعه", "آخرین داستان‌هایی که باز کرده‌ای", recentlyRead, onOpen) }
         }
         item {
             Column {
@@ -296,7 +328,14 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             genres.forEach { g -> FilterChip(selected = genre == g, onClick = { onGenre(g) }, label = { Text(g) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Purple, selectedLabelColor = Night, labelColor = Muted)) }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(4.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("${results.size} عنوان", color = Muted, fontSize = 11.sp)
+            if (query.isNotBlank() || genre != "همه") {
+                TextButton(onClick = { onQuery(""); onGenre("همه") }) { Text("پاک‌کردن فیلترها", color = Cyan, fontSize = 11.sp) }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
         if (results.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("چیزی پیدا نشد؛ عبارت دیگری را امتحان کن.", color = Muted) }
         else LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 20.dp)) { items(results) { ComicRow(it) { onOpen(it) } } }
     }
