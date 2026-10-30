@@ -207,7 +207,7 @@ private fun KamingaApp() {
                         onImportZip = { chapter ->
                             importTargetTitle = selected!!.title
                             importTargetChapter = chapter
-                            zipPicker.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
+                            zipPicker.launch(arrayOf("*/*"))
                         },
                         onRemoveImages = { chapter ->
                             val title = selected!!.title
@@ -837,24 +837,33 @@ private fun comicImagePaths(context: Context, comic: Comic, chapter: Int): List<
 
 private fun copyComicImages(context: Context, comic: Comic, chapter: Int, uris: List<android.net.Uri>): Int {
     val directory = comicImageDirectory(context, comic, chapter)
+    val temp = java.io.File(context.filesDir, "image_import_${java.util.UUID.randomUUID()}")
+    val backup = java.io.File(context.filesDir, "image_backup_${java.util.UUID.randomUUID()}")
     return try {
-        directory.deleteRecursively()
-        directory.mkdirs()
+        if (!temp.mkdirs()) return 0
         var count = 0
         uris.forEachIndexed { index, uri ->
-            val target = java.io.File(directory, "page_%04d.img".format(index + 1))
+            val target = java.io.File(temp, "page_%05d.img".format(index + 1))
             val copied = context.contentResolver.openInputStream(uri)?.use { input ->
                 target.outputStream().use { output -> input.copyTo(output) }
-                true
+                target.length() > 0L
             } ?: false
-            if (copied) count++
-            else target.delete()
+            if (copied) count++ else target.delete()
         }
-        if (count == 0) directory.deleteRecursively()
+        if (count == 0) return 0
+        if (directory.exists() && !directory.renameTo(backup)) return 0
+        if (!temp.renameTo(directory)) {
+            if (backup.exists()) backup.renameTo(directory)
+            return 0
+        }
+        backup.deleteRecursively()
         count
     } catch (_: Exception) {
-        directory.deleteRecursively()
+        if (!directory.exists() && backup.exists()) backup.renameTo(directory)
         0
+    } finally {
+        temp.deleteRecursively()
+        if (directory.exists()) backup.deleteRecursively()
     }
 }
 
