@@ -61,6 +61,7 @@ private fun KamingaApp() {
     var genre by rememberSaveable { mutableStateOf("همه") }
     var selected by remember { mutableStateOf<Comic?>(null) }
     var reading by remember { mutableStateOf<Comic?>(null) }
+    var readingChapter by rememberSaveable { mutableIntStateOf(1) }
     var mode by rememberSaveable { mutableStateOf("صفحه‌ای") }
     val context = LocalContext.current
     val preferences = remember { context.getSharedPreferences("kaminga_local", Context.MODE_PRIVATE) }
@@ -73,11 +74,11 @@ private fun KamingaApp() {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Surface(Modifier.fillMaxSize(), color = Night) {
                 when {
-                    reading != null -> ReaderScreen(reading!!, mode, { mode = it }, { reading = null })
+                    reading != null -> ReaderScreen(reading!!, readingChapter, mode, { mode = it }, { readingChapter = (readingChapter - 1).coerceAtLeast(1) }, { readingChapter = (readingChapter + 1).coerceAtMost(reading!!.chapters) }, { reading = null })
                     selected != null -> DetailScreen(selected!!, saved.contains(selected!!.title), {
                         if (saved.contains(selected!!.title)) saved.remove(selected!!.title) else saved.add(selected!!.title)
                         preferences.edit().putStringSet("saved_comics", saved.toSet()).apply()
-                    }, { reading = selected }, { selected = null })
+                    }, { chapter -> readingChapter = chapter; reading = selected }, { selected = null })
                     else -> Scaffold(containerColor = Night, bottomBar = {
                         NavigationBar(containerColor = Panel) {
                             listOf("خانه", "جست‌وجو", "کتابخانه", "حساب").forEach { label ->
@@ -261,7 +262,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
     }
 }
 
-@Composable private fun DetailScreen(comic: Comic, isSaved: Boolean, onSave: () -> Unit, onRead: () -> Unit, onBack: () -> Unit) {
+@Composable private fun DetailScreen(comic: Comic, isSaved: Boolean, onSave: () -> Unit, onRead: (Int) -> Unit, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowForward, "بازگشت", tint = Color.White) }
@@ -284,21 +285,39 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
             Spacer(Modifier.height(8.dp))
             Text(comic.description, color = Muted, fontSize = 14.sp, lineHeight = 23.sp)
             Spacer(Modifier.height(20.dp))
-            Button(onClick = onRead, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Night), shape = RoundedCornerShape(15.dp)) { Icon(Icons.Default.MenuBook, null); Spacer(Modifier.width(8.dp)); Text("شروع مطالعه", fontWeight = FontWeight.Bold) }
+            Button(onClick = { onRead(1) }, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Night), shape = RoundedCornerShape(15.dp)) { Icon(Icons.Default.MenuBook, null); Spacer(Modifier.width(8.dp)); Text("شروع مطالعه", fontWeight = FontWeight.Bold) }
             OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp), shape = RoundedCornerShape(15.dp)) { Icon(if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, null, tint = Cyan); Spacer(Modifier.width(8.dp)); Text(if (isSaved) "حذف از کتابخانه" else "ذخیره در کتابخانه", color = Color.White) }
             Spacer(Modifier.height(20.dp))
             Text("فصل‌ها", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(7.dp))
-            Text("فهرست فصل‌ها در نسخه بعدی به محتوای واقعی متصل می‌شود.", color = Muted, fontSize = 12.sp)
+            Text("یک فصل را برای باز کردن پیش‌نمایش انتخاب کن.", color = Muted, fontSize = 12.sp)
+            Spacer(Modifier.height(10.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                (1..comic.chapters).toList().chunked(2).forEach { pair ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        pair.forEach { chapterNumber ->
+                            OutlinedButton(
+                                onClick = { onRead(chapterNumber) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
+                            ) {
+                                Text("فصل $chapterNumber", color = Color.White, fontSize = 12.sp)
+                            }
+                        }
+                        if (pair.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+            }
         }
     }
 }
 
-@Composable private fun ReaderScreen(comic: Comic, mode: String, onMode: (String) -> Unit, onBack: () -> Unit) {
+@Composable private fun ReaderScreen(comic: Comic, chapter: Int, mode: String, onMode: (String) -> Unit, onPrevious: () -> Unit, onNext: () -> Unit, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowForward, "بازگشت", tint = Color.White) }
-            Column { Text(comic.title, color = Color.White, fontWeight = FontWeight.Bold); Text("فصل ۱ • پیش‌نمایش خواننده", color = Muted, fontSize = 11.sp) }
+            Column { Text(comic.title, color = Color.White, fontWeight = FontWeight.Bold); Text("فصل $chapter از ${comic.chapters} • پیش‌نمایش", color = Muted, fontSize = 11.sp) }
         }
         Spacer(Modifier.height(15.dp))
         Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(14.dp)).padding(5.dp)) {
@@ -314,12 +333,19 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                 Text(comic.english, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                 Text("پیش‌نمایش محیط مطالعه", color = Cyan, fontSize = 13.sp)
                 Spacer(Modifier.height(22.dp))
+                Text("فصل $chapter", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
                 Text("حالت " + mode + " انتخاب شده است.", color = Muted, fontSize = 13.sp)
                 Spacer(Modifier.height(8.dp))
-                Text("این نسخه هنوز صفحات واقعی کمیک را دریافت نمی‌کند.", color = Muted, fontSize = 11.sp)
+                Text("این پیش‌نمایش است؛ صفحات واقعی کمیک هنوز اضافه نشده‌اند.", color = Muted, fontSize = 11.sp, lineHeight = 18.sp)
             }
         }
         Spacer(Modifier.height(12.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(onClick = onPrevious, enabled = chapter > 1, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text("فصل قبلی") }
+            Button(onClick = onNext, enabled = chapter < comic.chapters, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Night)) { Text("فصل بعدی") }
+        }
+        Spacer(Modifier.height(8.dp))
         Text("نسخه نمایشی • محتوای دارای مجوز باید اضافه شود", color = Muted, fontSize = 11.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
     }
 }
