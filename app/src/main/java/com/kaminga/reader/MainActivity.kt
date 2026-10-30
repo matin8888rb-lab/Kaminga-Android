@@ -474,7 +474,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
             TextButton(onClick = { newestFirst = !newestFirst }) {
                 Icon(Icons.Default.Sort, null, tint = Cyan)
                 Spacer(Modifier.width(5.dp))
-                Text(if (newestFirst) "ترتیب معکوس" else "ترتیب عادی", color = Cyan)
+                Text(if (newestFirst) "جدیدتر به قدیمی‌تر" else "قدیمی‌تر به جدیدتر", color = Cyan)
             }
         }
         if (visible.isEmpty()) {
@@ -494,7 +494,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                         Row(Modifier.fillMaxWidth().padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(buildList {
                                 if (savedTitles.contains(comic.title)) add("ذخیره‌شده")
-                                if (downloadedTitles.contains(comic.title)) add("پیش‌نمایش آفلاین")
+                                if (downloadedTitles.contains(comic.title)) add("متن نمونه آفلاین")
                             }.joinToString(" • "), color = Muted, fontSize = 10.sp, modifier = Modifier.weight(1f))
                             TextButton(onClick = { onRemove(comic) }) {
                                 Icon(Icons.Default.DeleteOutline, null, tint = Color(0xFFCC6677))

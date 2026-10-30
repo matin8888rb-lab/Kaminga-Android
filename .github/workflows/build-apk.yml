@@ -2,7 +2,7 @@ name: Build Kaminga APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "unified-update" ]
   workflow_dispatch:
 
 permissions:
