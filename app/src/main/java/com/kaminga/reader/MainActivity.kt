@@ -254,7 +254,7 @@ private fun KamingaApp() {
                                 Modifier.padding(padding)
                             )
                             "نشانک‌ها" -> BookmarkManagerScreen(bookmarks.toList(), { comic, chapter, page -> readingChapter = chapter; preferences.edit().putInt("page_${comic.title}_$chapter", page).apply(); reading = comic }, { key -> bookmarks.remove(key); preferences.edit().putStringSet("reader_bookmarks", bookmarks.toSet()).apply() }, Modifier.padding(padding))
-                            "حساب" -> AccountScreen(Modifier.padding(padding))
+                            "حساب" -> AccountScreen(saved.size, bookmarks.size, downloaded.size, comics.filter { preferences.getLong("opened_${it.title}", 0L) > 0L }, { preferences.getInt("progress_${it.title}", 1) }, Modifier.padding(padding))
                             else -> HomeScreen(
                                 savedCount = saved.size,
                                 recentlyRead = comics
@@ -918,7 +918,7 @@ private fun BookmarkManagerScreen(bookmarks: List<String>, onOpen: (Comic, Int, 
 }
 
 private fun normalizeSearchText(value: String): String = value.lowercase().replace('ي', 'ی').replace('ك', 'ک').replace("‌", " ").replace(Regex("\\s+"), " ").trim()
-@Composable private fun AccountScreen(modifier: Modifier = Modifier) {
+@Composable private fun AccountScreen(savedCount: Int, bookmarkCount: Int, offlineCount: Int, readComics: List<Comic>, progressFor: (Comic) -> Int, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().padding(22.dp)) {
         Text("حساب کاربری", color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
         Text("پروفایل کامینگا در حال آماده‌سازی است.", color = Muted, fontSize = 13.sp)
@@ -927,6 +927,10 @@ private fun normalizeSearchText(value: String): String = value.lowercase().repla
             Icon(Icons.Default.Person, null, tint = Cyan, modifier = Modifier.size(40.dp))
         }
         Spacer(Modifier.height(18.dp))
+        Text("ذخیره‌شده: $savedCount • نشانک‌ها: $bookmarkCount • آفلاین: $offlineCount", color = Cyan, fontSize = 12.sp)
+        Text("تاریخچه مطالعه", color = Ink, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 20.dp, bottom = 8.dp))
+        readComics.forEach { comic -> Text(comic.title + " — چپتر " + progressFor(comic), color = Muted, fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp)) }
+        Spacer(Modifier.height(12.dp))
         Text("ورود و ثبت‌نام هنوز فعال نیست", color = Ink, fontWeight = FontWeight.Bold, fontSize = 17.sp)
         Spacer(Modifier.height(8.dp))
         Text("در مرحله بعد معماری حساب کاربری را بررسی می‌کنیم. تأیید پیامکی به سرویس جداگانه و احتمالاً هزینه نیاز دارد.", color = Muted, fontSize = 13.sp, lineHeight = 21.sp)
