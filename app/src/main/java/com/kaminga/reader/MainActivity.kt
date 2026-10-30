@@ -156,9 +156,8 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
         }
         Spacer(Modifier.height(12.dp))
         Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(horizontal = 18.dp)
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             entries.forEach { comic ->
                 Column(Modifier.width(124.dp).clickable { onOpen(comic) }) {
