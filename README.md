@@ -1,16 +1,32 @@
 # Kaminga Android
 
-A fresh native Android project for Kaminga, built with Kotlin and Jetpack Compose.
+A native Android comic-reader prototype built with Kotlin and Jetpack Compose.
 
-## Current milestone
-- Native Android app shell with a soft blue and mint-green light design.
-- Demo home screen, comic details, genre filtering, local library saves, reader layout toggle, and Android back navigation between screens.\n- Custom Kaminga launcher icon in a light blue / mint-green palette.
-- GitHub Actions workflow intended to build and upload a debug APK on pushes to `main`.
+## Implemented in the current prototype
+- Light blue / mint-green interface and launcher icon.
+- Home screen with horizontal content rails.
+- Search by title, English title, and genre, plus genre filters.
+- Comic detail screens and selectable demo chapters.
+- Local saved-library state.
+- Local reading chapter progress and a “continue reading” action.
+- A reader with page-by-page and continuous text layouts.
+- Android back navigation between reader, details, tabs, and home.
+- Local storage of demo text previews for offline testing; downloaded previews appear in the library.
 
-## Important status
-The comics and reader are **demo content**. Real licensed comic files, account registration, server-backed storage, SMS verification, offline downloads, and creator publishing are not implemented yet. The workflow must pass before the APK is considered verified.
+## Important limitations
+- Titles, covers, and chapter pages are placeholders/demo content, not real licensed comics.
+- Offline saving currently stores demo text previews only, not real comic image/PDF files.
+- Accounts, secure backend, cross-device sync, real authentication, and SMS verification are not implemented.
+- This is a debug/test prototype, not a release-ready public app.
+- A successful APK build does not prove every feature works on a physical phone; install and test the generated APK.
 
 ## Build
-Run `gradle assembleDebug` with JDK 17 and Gradle 8.9, or use GitHub Actions.
+Use JDK 17 and Gradle 8.9, then run:
+
+```sh
+gradle assembleDebug
+```
+
+Or use the GitHub Actions workflow to build a debug APK.
 
 Package: `com.kaminga.reader`
