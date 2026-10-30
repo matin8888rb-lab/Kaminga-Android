@@ -101,23 +101,33 @@ private fun KamingaApp() {
     val imagePageCounts = remember {
         mutableStateMapOf<String, Int>().apply {
             comics.forEach { comic ->
-                val count = preferences.getInt("image_pages_${comic.title}", 0)
-                if (count > 0) put(comic.title, count)
+                for (chapter in 1..comic.chapters) {
+                    val key = "${comic.title}#${chapter}"
+                    val count = preferences.getInt("image_pages_${comic.title}_${chapter}", 0)
+                    if (count > 0) put(key, count)
+                }
+                val legacyCount = preferences.getInt("image_pages_${comic.title}", 0)
+                if (legacyCount > 0 && !contains("${comic.title}#1")) {
+                    put("${comic.title}#1", legacyCount)
+                }
             }
         }
     }
     var importTargetTitle by remember { mutableStateOf<String?>(null) }
+    var importTargetChapter by remember { mutableIntStateOf(1) }
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
         val title = importTargetTitle
+        val chapter = importTargetChapter
         if (title != null && uris.isNotEmpty()) {
             val comic = comics.firstOrNull { it.title == title }
             if (comic != null) {
-                val imported = copyComicImages(context, comic, uris)
+                val key = "$title#$chapter"
+                val imported = copyComicImages(context, comic, chapter, uris)
                 if (imported > 0) {
-                    imagePageCounts[title] = imported
-                    preferences.edit().putInt("image_pages_$title", imported).apply()
+                    imagePageCounts[key] = imported
+                    preferences.edit().putInt("image_pages_${title}_${chapter}", imported).apply()
                     android.widget.Toast.makeText(context, "$imported صفحه تصویری اضافه شد.", android.widget.Toast.LENGTH_SHORT).show()
                 } else {
                     android.widget.Toast.makeText(context, "تصویرها وارد نشدند؛ فایل‌های تصویری را انتخاب کن.", android.widget.Toast.LENGTH_SHORT).show()
@@ -133,7 +143,7 @@ private fun KamingaApp() {
                     reading != null -> ReaderScreen(
                         comic = reading!!,
                         chapter = readingChapter,
-                        imagePaths = comicImagePaths(context, reading!!),
+                        imagePaths = comicImagePaths(context, reading!!, readingChapter),
                         initialPage = preferences.getInt("page_${reading!!.title}_$readingChapter", 0),
                         mode = mode,
                         onMode = { mode = it },
@@ -160,10 +170,18 @@ private fun KamingaApp() {
                         comic = selected!!,
                         isSaved = saved.contains(selected!!.title),
                         isDownloaded = downloaded.contains(selected!!.title),
-                        importedImagePages = imagePageCounts[selected!!.title] ?: 0,
-                        onImportImages = {
+                        importedImagePages = (1..selected!!.chapters).sumOf { imagePageCounts["${selected!!.title}#$it"] ?: 0 },
+                        chapterImageCounts = (1..selected!!.chapters).associateWith { imagePageCounts["${selected!!.title}#$it"] ?: 0 },
+                        onImportImages = { chapter ->
                             importTargetTitle = selected!!.title
+                            importTargetChapter = chapter
                             imagePicker.launch(arrayOf("image/*"))
+                        },
+                        onRemoveImages = { chapter ->
+                            val title = selected!!.title
+                            deleteComicImages(context, selected!!, chapter)
+                            imagePageCounts.remove("$title#$chapter")
+                            preferences.edit().remove("image_pages_${title}_${chapter}").apply()
                         },
                         resumeChapter = preferences.getInt("progress_${selected!!.title}", 1).coerceIn(1, selected!!.chapters),
                         onSave = {
@@ -211,6 +229,16 @@ private fun KamingaApp() {
                             "جست‌وجو" -> SearchScreen(query, { query = it }, genre, { genre = it }, comics.filter { (it.title + it.english + it.genre).contains(query, true) && (genre == "همه" || it.genre == genre) }, { selected = it }, Modifier.padding(padding))
                             "کتابخانه" -> LibraryScreen(
                                 comics.filter { saved.contains(it.title) || downloaded.contains(it.title) },
+                                saved.toSet(),
+                                downloaded.toSet(),
+                                { comic ->
+                                    saved.remove(comic.title)
+                                    downloaded.remove(comic.title)
+                                    preferences.edit()
+                                        .putStringSet("saved_comics", saved.toSet())
+                                        .putStringSet("downloaded_comics", downloaded.toSet())
+                                        .apply()
+                                },
                                 { selected = it },
                                 Modifier.padding(padding)
                             )
@@ -388,20 +416,62 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
     }
 }
 
-@Composable private fun LibraryScreen(comicsSaved: List<Comic>, onOpen: (Comic) -> Unit, modifier: Modifier = Modifier) {
+@Composable private fun LibraryScreen(
+    comicsSaved: List<Comic>,
+    savedTitles: Set<String>,
+    downloadedTitles: Set<String>,
+    onRemove: (Comic) -> Unit,
+    onOpen: (Comic) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var filter by rememberSaveable { mutableStateOf("همه") }
+    var newestFirst by rememberSaveable { mutableStateOf(true) }
+    val visible = comicsSaved
+        .filter { filter == "همه" || (filter == "ذخیره‌شده" && savedTitles.contains(it.title)) || (filter == "آفلاین" && downloadedTitles.contains(it.title)) }
+        .let { if (newestFirst) it.reversed() else it }
     Column(modifier.fillMaxSize().padding(18.dp)) {
         Text("کتابخانه من", color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
-        Text("داستان‌های ذخیره‌شده و پیش‌نمایش‌های آفلاین", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 18.dp))
-        if (comicsSaved.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("${comicsSaved.size} عنوان در کتابخانه", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            listOf("همه", "ذخیره‌شده", "آفلاین").forEach { item ->
+                FilterChip(selected = filter == item, onClick = { filter = item }, label = { Text(item) })
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = { newestFirst = !newestFirst }) {
+                Icon(Icons.Default.Sort, null, tint = Cyan)
+                Spacer(Modifier.width(5.dp))
+                Text(if (newestFirst) "ترتیب معکوس" else "ترتیب عادی", color = Cyan)
+            }
+        }
+        if (visible.isEmpty()) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Bookmarks, null, tint = Purple, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(12.dp))
-                    Text("کتابخانه‌ات هنوز خالی است", color = Ink, fontWeight = FontWeight.Bold)
+                    Text(if (comicsSaved.isEmpty()) "کتابخانه‌ات هنوز خالی است" else "در این بخش عنوانی وجود ندارد", color = Ink, fontWeight = FontWeight.Bold)
                     Text("از صفحه جزئیات، داستان‌ها را ذخیره کن.", color = Muted, fontSize = 12.sp)
                 }
             }
-        } else LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) { items(comicsSaved) { ComicRow(it) { onOpen(it) } } }
+        } else {
+            LazyColumn(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(bottom = 18.dp)) {
+                items(visible, key = { it.title }) { comic ->
+                    Column(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(18.dp)).padding(10.dp)) {
+                        ComicRow(comic) { onOpen(comic) }
+                        Row(Modifier.fillMaxWidth().padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text(buildList {
+                                if (savedTitles.contains(comic.title)) add("ذخیره‌شده")
+                                if (downloadedTitles.contains(comic.title)) add("پیش‌نمایش آفلاین")
+                            }.joinToString(" • "), color = Muted, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                            TextButton(onClick = { onRemove(comic) }) {
+                                Icon(Icons.Default.DeleteOutline, null, tint = Color(0xFFCC6677))
+                                Text("حذف", color = Color(0xFFCC6677), fontSize = 11.sp)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -410,7 +480,9 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
     isSaved: Boolean,
     isDownloaded: Boolean,
     importedImagePages: Int,
-    onImportImages: () -> Unit,
+    chapterImageCounts: Map<Int, Int>,
+    onImportImages: (Int) -> Unit,
+    onRemoveImages: (Int) -> Unit,
     resumeChapter: Int,
     onSave: () -> Unit,
     onDownload: () -> Unit,
@@ -451,21 +523,20 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                 Spacer(Modifier.width(8.dp))
                 Text(if (isSaved) "حذف از کتابخانه" else "ذخیره در کتابخانه", color = Ink)
             }
-            OutlinedButton(
-                onClick = onImportImages,
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp),
-                shape = RoundedCornerShape(15.dp)
-            ) {
+            Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(13.dp)).padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Collections, null, tint = Cyan)
-                Spacer(Modifier.width(8.dp))
-                Text(if (importedImagePages > 0) "مدیریت صفحات تصویری ($importedImagePages)" else "افزودن صفحات تصویری از گوشی", color = Ink)
+                Spacer(Modifier.width(9.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("مدیریت صفحات تصویری", color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text("$importedImagePages صفحه در فصل‌های این عنوان", color = Muted, fontSize = 10.sp)
+                }
             }
             Text(
-                "می‌توانی تصاویر کمیک مجاز را از حافظه گوشی انتخاب کنی؛ برنامه آن‌ها را داخل خودش ذخیره می‌کند.",
+                "هر فصل می‌تواند مجموعه تصاویر مستقل داشته باشد. تصاویر فقط در حافظه همین دستگاه ذخیره می‌شوند.",
                 color = Muted,
                 fontSize = 11.sp,
                 lineHeight = 17.sp,
-                modifier = Modifier.padding(top = 5.dp)
+                modifier = Modifier.padding(top = 6.dp)
             )
             OutlinedButton(onClick = onDownload, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp), shape = RoundedCornerShape(15.dp)) {
                 Icon(if (isDownloaded) Icons.Default.DeleteOutline else Icons.Default.Download, null, tint = Cyan)
@@ -488,13 +559,33 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                 (1..comic.chapters).toList().chunked(2).forEach { pair ->
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         pair.forEach { chapterNumber ->
-                            OutlinedButton(
-                                onClick = { onRead(chapterNumber) },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
-                            ) {
-                                Text("فصل $chapterNumber", color = Ink, fontSize = 12.sp)
+                            Column(Modifier.weight(1f).background(Panel, RoundedCornerShape(12.dp)).padding(7.dp)) {
+                                OutlinedButton(
+                                    onClick = { onRead(chapterNumber) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 8.dp)
+                                ) {
+                                    Text("فصل $chapterNumber", color = Ink, fontSize = 12.sp)
+                                }
+                                TextButton(
+                                    onClick = { onImportImages(chapterNumber) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentPadding = PaddingValues(2.dp)
+                                ) {
+                                    Icon(Icons.Default.Collections, null, tint = Cyan, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(3.dp))
+                                    Text(if ((chapterImageCounts[chapterNumber] ?: 0) > 0) "${chapterImageCounts[chapterNumber]} صفحه • تغییر" else "افزودن تصاویر", color = Cyan, fontSize = 10.sp)
+                                }
+                                if ((chapterImageCounts[chapterNumber] ?: 0) > 0) {
+                                    TextButton(
+                                        onClick = { onRemoveImages(chapterNumber) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        contentPadding = PaddingValues(2.dp)
+                                    ) {
+                                        Text("حذف صفحات این فصل", color = Color(0xFFCC6677), fontSize = 10.sp)
+                                    }
+                                }
                             }
                         }
                         if (pair.size == 1) Spacer(Modifier.weight(1f))
@@ -652,18 +743,18 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
 
 
 
-private fun comicImageDirectory(context: Context, comic: Comic) =
-    java.io.File(context.filesDir, "comic_pages_${comic.title.hashCode()}")
+private fun comicImageDirectory(context: Context, comic: Comic, chapter: Int) =
+    java.io.File(context.filesDir, "comic_pages_${comic.title.hashCode()}_$chapter")
 
-private fun comicImagePaths(context: Context, comic: Comic): List<String> =
-    comicImageDirectory(context, comic).listFiles()
+private fun comicImagePaths(context: Context, comic: Comic, chapter: Int): List<String> =
+    comicImageDirectory(context, comic, chapter).listFiles()
         ?.filter { it.isFile }
         ?.sortedBy { it.name }
         ?.map { it.absolutePath }
         ?: emptyList()
 
-private fun copyComicImages(context: Context, comic: Comic, uris: List<android.net.Uri>): Int {
-    val directory = comicImageDirectory(context, comic)
+private fun copyComicImages(context: Context, comic: Comic, chapter: Int, uris: List<android.net.Uri>): Int {
+    val directory = comicImageDirectory(context, comic, chapter)
     return try {
         directory.deleteRecursively()
         directory.mkdirs()
@@ -683,6 +774,10 @@ private fun copyComicImages(context: Context, comic: Comic, uris: List<android.n
         directory.deleteRecursively()
         0
     }
+}
+
+private fun deleteComicImages(context: Context, comic: Comic, chapter: Int) {
+    comicImageDirectory(context, comic, chapter).deleteRecursively()
 }
 
 @Composable
