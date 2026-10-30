@@ -84,15 +84,54 @@ private fun KamingaApp() {
             addAll(preferences.getStringSet("saved_comics", emptySet())?.toList() ?: emptyList())
         }
     }
+    val downloaded = remember {
+        mutableStateListOf<String>().apply {
+            addAll(preferences.getStringSet("downloaded_comics", emptySet())?.toList() ?: emptyList())
+        }
+    }
     MaterialTheme(colorScheme = lightColorScheme(primary = Purple, secondary = Cyan, background = Night, surface = Panel, onPrimary = Ink, onBackground = Ink, onSurface = Ink)) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Surface(Modifier.fillMaxSize(), color = Night) {
                 when {
-                    reading != null -> ReaderScreen(reading!!, readingChapter, mode, { mode = it }, { readingChapter = (readingChapter - 1).coerceAtLeast(1) }, { readingChapter = (readingChapter + 1).coerceAtMost(reading!!.chapters) }, { reading = null })
-                    selected != null -> DetailScreen(selected!!, saved.contains(selected!!.title), {
-                        if (saved.contains(selected!!.title)) saved.remove(selected!!.title) else saved.add(selected!!.title)
-                        preferences.edit().putStringSet("saved_comics", saved.toSet()).apply()
-                    }, { chapter -> readingChapter = chapter; reading = selected }, { selected = null })
+                    reading != null -> ReaderScreen(
+                        comic = reading!!,
+                        chapter = readingChapter,
+                        mode = mode,
+                        onMode = { mode = it },
+                        onPrevious = {
+                            readingChapter = (readingChapter - 1).coerceAtLeast(1)
+                            preferences.edit().putInt("progress_${reading!!.title}", readingChapter).apply()
+                        },
+                        onNext = {
+                            readingChapter = (readingChapter + 1).coerceAtMost(reading!!.chapters)
+                            preferences.edit().putInt("progress_${reading!!.title}", readingChapter).apply()
+                        },
+                        onBack = { reading = null }
+                    )
+                    selected != null -> DetailScreen(
+                        comic = selected!!,
+                        isSaved = saved.contains(selected!!.title),
+                        isDownloaded = downloaded.contains(selected!!.title),
+                        resumeChapter = preferences.getInt("progress_${selected!!.title}", 1).coerceIn(1, selected!!.chapters),
+                        onSave = {
+                            if (saved.contains(selected!!.title)) saved.remove(selected!!.title) else saved.add(selected!!.title)
+                            preferences.edit().putStringSet("saved_comics", saved.toSet()).apply()
+                        },
+                        onDownload = {
+                            val comic = selected!!
+                            val shouldDownload = !downloaded.contains(comic.title)
+                            if (setOfflinePreview(context, comic, shouldDownload)) {
+                                if (shouldDownload) downloaded.add(comic.title) else downloaded.remove(comic.title)
+                                preferences.edit().putStringSet("downloaded_comics", downloaded.toSet()).apply()
+                            }
+                        },
+                        onRead = { chapter ->
+                            readingChapter = chapter
+                            preferences.edit().putInt("progress_${selected!!.title}", chapter).apply()
+                            reading = selected
+                        },
+                        onBack = { selected = null }
+                    )
                     else -> Scaffold(containerColor = Night, bottomBar = {
                         NavigationBar(containerColor = Panel) {
                             listOf("خانه", "جست‌وجو", "کتابخانه", "حساب").forEach { label ->
@@ -276,7 +315,16 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
     }
 }
 
-@Composable private fun DetailScreen(comic: Comic, isSaved: Boolean, onSave: () -> Unit, onRead: (Int) -> Unit, onBack: () -> Unit) {
+@Composable private fun DetailScreen(
+    comic: Comic,
+    isSaved: Boolean,
+    isDownloaded: Boolean,
+    resumeChapter: Int,
+    onSave: () -> Unit,
+    onDownload: () -> Unit,
+    onRead: (Int) -> Unit,
+    onBack: () -> Unit
+) {
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowForward, "بازگشت", tint = Ink) }
@@ -299,8 +347,28 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
             Spacer(Modifier.height(8.dp))
             Text(comic.description, color = Muted, fontSize = 14.sp, lineHeight = 23.sp)
             Spacer(Modifier.height(20.dp))
-            Button(onClick = { onRead(1) }, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink), shape = RoundedCornerShape(15.dp)) { Icon(Icons.Default.MenuBook, null); Spacer(Modifier.width(8.dp)); Text("شروع مطالعه", fontWeight = FontWeight.Bold) }
-            OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp), shape = RoundedCornerShape(15.dp)) { Icon(if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, null, tint = Cyan); Spacer(Modifier.width(8.dp)); Text(if (isSaved) "حذف از کتابخانه" else "ذخیره در کتابخانه", color = Ink) }
+            Button(onClick = { onRead(resumeChapter) }, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink), shape = RoundedCornerShape(15.dp)) {
+                Icon(Icons.Default.MenuBook, null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (resumeChapter > 1) "ادامه از فصل $resumeChapter" else "شروع مطالعه", fontWeight = FontWeight.Bold)
+            }
+            OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp), shape = RoundedCornerShape(15.dp)) {
+                Icon(if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, null, tint = Cyan)
+                Spacer(Modifier.width(8.dp))
+                Text(if (isSaved) "حذف از کتابخانه" else "ذخیره در کتابخانه", color = Ink)
+            }
+            OutlinedButton(onClick = onDownload, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp), shape = RoundedCornerShape(15.dp)) {
+                Icon(if (isDownloaded) Icons.Default.DeleteOutline else Icons.Default.Download, null, tint = Cyan)
+                Spacer(Modifier.width(8.dp))
+                Text(if (isDownloaded) "حذف پیش‌نمایش آفلاین" else "ذخیره پیش‌نمایش آفلاین", color = Ink)
+            }
+            Text(
+                if (isDownloaded) "پیش‌نمایش متنی این عنوان روی گوشی ذخیره شده است." else "دانلود فعلاً فقط پیش‌نمایش متنی نمایشی را ذخیره می‌کند؛ فایل کمیک اصلی هنوز موجود نیست.",
+                color = Muted,
+                fontSize = 11.sp,
+                lineHeight = 17.sp,
+                modifier = Modifier.padding(top = 7.dp)
+            )
             Spacer(Modifier.height(20.dp))
             Text("فصل‌ها", color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(7.dp))
@@ -342,8 +410,19 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
     )
 }
 
-@Composable private fun ReaderScreen(comic: Comic, chapter: Int, mode: String, onMode: (String) -> Unit, onPrevious: () -> Unit, onNext: () -> Unit, onBack: () -> Unit) {
+@Composable private fun ReaderScreen(
+    comic: Comic,
+    chapter: Int,
+    mode: String,
+    onMode: (String) -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onBack: () -> Unit
+) {
     var page by rememberSaveable(comic.title, chapter) { mutableIntStateOf(0) }
+    LaunchedEffect(comic.title, chapter) {
+        // Chapter progress is saved by the parent whenever navigation changes.
+    }
     val pages = remember(comic.title, chapter) { demoChapterPages(comic, chapter) }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -413,6 +492,26 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
     }
 }
 
+
+
+private fun setOfflinePreview(context: Context, comic: Comic, shouldDownload: Boolean): Boolean {
+    val prefix = "kaminga_${comic.title.hashCode()}_"
+    return try {
+        if (shouldDownload) {
+            for (chapter in 1..comic.chapters) {
+                val content = demoChapterPages(comic, chapter).joinToString("\n\n──────────\n\n")
+                context.openFileOutput("${prefix}${chapter}.txt", Context.MODE_PRIVATE).use { stream ->
+                    stream.write(content.toByteArray(Charsets.UTF_8))
+                }
+            }
+        } else {
+            context.filesDir.listFiles()?.filter { it.name.startsWith(prefix) }?.forEach { it.delete() }
+        }
+        true
+    } catch (_: Exception) {
+        false
+    }
+}
 
 @Composable private fun AccountScreen(modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().padding(22.dp)) {
