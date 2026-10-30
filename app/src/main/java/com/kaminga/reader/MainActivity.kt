@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -30,13 +31,14 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val Night = Color(0xFF090D1A)
-private val Panel = Color(0xFF151B2E)
-private val PanelHigh = Color(0xFF1D2540)
-private val Purple = Color(0xFF9B7BFF)
-private val Cyan = Color(0xFF64E5E8)
-private val Muted = Color(0xFFADB5CC)
-private val Line = Color(0xFF343B54)
+private val Night = Color(0xFFF1F7FA) // روشنِ آبیِ خیلی ملایم
+private val Panel = Color(0xFFFFFFFF)
+private val PanelHigh = Color(0xFFDDF2EE)
+private val Purple = Color(0xFF347DA8) // آبی اصلی
+private val Cyan = Color(0xFF3D9B83) // سبز ملایم
+private val Muted = Color(0xFF617782)
+private val Line = Color(0xFFD5E4E9)
+private val Ink = Color(0xFF203744)
 
 private data class Comic(val title: String, val english: String, val genre: String, val description: String, val symbol: String, val accent: Color, val chapters: Int)
 private val comics = listOf(
@@ -50,7 +52,7 @@ private val comics = listOf(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { KamingaApp() }
+        window.statusBarColor = android.graphics.Color.rgb(241, 247, 250)\n        window.navigationBarColor = android.graphics.Color.rgb(241, 247, 250)\n        if (android.os.Build.VERSION.SDK_INT >= 26) {\n            window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR\n        }\n        setContent { KamingaApp() }
     }
 }
 
@@ -63,14 +65,14 @@ private fun KamingaApp() {
     var reading by remember { mutableStateOf<Comic?>(null) }
     var readingChapter by rememberSaveable { mutableIntStateOf(1) }
     var mode by rememberSaveable { mutableStateOf("صفحه‌ای") }
-    val context = LocalContext.current
+    val context = LocalContext.current\n    BackHandler(enabled = reading != null || selected != null || tab != "خانه") {\n        when {\n            reading != null -> reading = null\n            selected != null -> selected = null\n            tab != "خانه" -> tab = "خانه"\n        }\n    }
     val preferences = remember { context.getSharedPreferences("kaminga_local", Context.MODE_PRIVATE) }
     val saved = remember {
         mutableStateListOf<String>().apply {
             addAll(preferences.getStringSet("saved_comics", emptySet())?.toList() ?: emptyList())
         }
     }
-    MaterialTheme(colorScheme = darkColorScheme(primary = Purple, secondary = Cyan, background = Night, surface = Panel, onPrimary = Night, onBackground = Color.White, onSurface = Color.White)) {
+    MaterialTheme(colorScheme = lightColorScheme(primary = Purple, secondary = Cyan, background = Night, surface = Panel, onPrimary = Ink, onBackground = Ink, onSurface = Ink)) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Surface(Modifier.fillMaxSize(), color = Night) {
                 when {
