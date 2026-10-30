@@ -96,8 +96,12 @@ private fun KamingaApp() {
                     reading != null -> ReaderScreen(
                         comic = reading!!,
                         chapter = readingChapter,
+                        initialPage = preferences.getInt("page_${reading!!.title}_$readingChapter", 0),
                         mode = mode,
                         onMode = { mode = it },
+                        onPageChange = { page ->
+                            preferences.edit().putInt("page_${reading!!.title}_$readingChapter", page).apply()
+                        },
                         onPrevious = {
                             readingChapter = (readingChapter - 1).coerceAtLeast(1)
                             preferences.edit()
@@ -456,17 +460,18 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
 @Composable private fun ReaderScreen(
     comic: Comic,
     chapter: Int,
+    initialPage: Int,
     mode: String,
     onMode: (String) -> Unit,
+    onPageChange: (Int) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
     onBack: () -> Unit
 ) {
-    var page by rememberSaveable(comic.title, chapter) { mutableIntStateOf(0) }
-    LaunchedEffect(comic.title, chapter) {
-        // Chapter progress is saved by the parent whenever navigation changes.
-    }
     val pages = remember(comic.title, chapter) { demoChapterPages(comic, chapter) }
+    var page by rememberSaveable(comic.title, chapter) {
+        mutableIntStateOf(initialPage.coerceIn(0, pages.lastIndex))
+    }
     Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowForward, "بازگشت", tint = Ink) }
@@ -500,13 +505,23 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(
-                    onClick = { if (page > 0) page-- else onPrevious() },
+                    onClick = {
+                        if (page > 0) {
+                            page--
+                            onPageChange(page)
+                        } else onPrevious()
+                    },
                     enabled = page > 0 || chapter > 1,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp)
                 ) { Text(if (page > 0) "صفحه قبل" else "فصل قبلی") }
                 Button(
-                    onClick = { if (page < pages.lastIndex) page++ else if (chapter < comic.chapters) onNext() },
+                    onClick = {
+                        if (page < pages.lastIndex) {
+                            page++
+                            onPageChange(page)
+                        } else if (chapter < comic.chapters) onNext()
+                    },
                     enabled = page < pages.lastIndex || chapter < comic.chapters,
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
