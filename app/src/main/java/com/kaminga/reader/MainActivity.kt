@@ -98,6 +98,11 @@ private fun KamingaApp() {
             addAll(preferences.getStringSet("downloaded_comics", emptySet())?.toList() ?: emptyList())
         }
     }
+    val bookmarks = remember {
+        mutableStateListOf<String>().apply {
+            addAll(preferences.getStringSet("reader_bookmarks", emptySet())?.toList() ?: emptyList())
+        }
+    }
     val imagePageCounts = remember {
         mutableStateMapOf<String, Int>().apply {
             comics.forEach { comic ->
@@ -147,6 +152,12 @@ private fun KamingaApp() {
                         initialPage = preferences.getInt("page_${reading!!.title}_$readingChapter", 0),
                         mode = mode,
                         onMode = { mode = it },
+                        isBookmarked = bookmarks.contains("${reading!!.title}#$readingChapter#${preferences.getInt("page_${reading!!.title}_$readingChapter", 0)}"),
+                        onToggleBookmark = { page ->
+                            val key = "${reading!!.title}#$readingChapter#$page"
+                            if (bookmarks.contains(key)) bookmarks.remove(key) else bookmarks.add(key)
+                            preferences.edit().putStringSet("reader_bookmarks", bookmarks.toSet()).apply()
+                        },
                         onPageChange = { page ->
                             preferences.edit().putInt("page_${reading!!.title}_$readingChapter", page).apply()
                         },
@@ -639,6 +650,8 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
     initialPage: Int,
     mode: String,
     onMode: (String) -> Unit,
+    isBookmarked: Boolean,
+    onToggleBookmark: (Int) -> Unit,
     onPageChange: (Int) -> Unit,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
@@ -658,7 +671,16 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
                 Text("چپتر $chapter از ${comic.chapters}", color = Muted, fontSize = 11.sp)
             }
             Text("${page + 1}/$pageCount", color = Cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            IconButton(onClick = { onToggleBookmark(page) }) {
+                Icon(if (isBookmarked) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, contentDescription = "نشانک این صفحه", tint = if (isBookmarked) Cyan else Muted)
+            }
         }
+        LinearProgressIndicator(
+            progress = { (page + 1).toFloat() / pageCount.coerceAtLeast(1) },
+            modifier = Modifier.fillMaxWidth().height(4.dp),
+            color = Cyan,
+            trackColor = Line
+        )
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(14.dp)).padding(5.dp)) {
             listOf("صفحه‌ای", "پیوسته").forEach { item ->
@@ -751,6 +773,7 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
             }
         }
         Spacer(Modifier.height(6.dp))
+        Text(if (isBookmarked) "این صفحه در نشانک‌ها ذخیره شده است" else "برای ذخیره این صفحه، آیکون نشانک بالای صفحه را بزن", color = Muted, fontSize = 10.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
         Text(
             if (hasImages) "صفحات تصویری واردشده از گوشی • برای استفاده فقط محتوای مجاز وارد کن"
             else "محتوای نمونه برای آزمایش مطالعه • می‌توانی صفحات تصویری را از جزئیات اثر وارد کنی",
