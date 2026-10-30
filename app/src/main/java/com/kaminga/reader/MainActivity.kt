@@ -253,6 +253,7 @@ private fun KamingaApp() {
                                 { selected = it },
                                 Modifier.padding(padding)
                             )
+                            "نشانک‌ها" -> BookmarkManagerScreen(bookmarks.toList(), { comic, chapter, page -> readingChapter = chapter; preferences.edit().putInt("page_${comic.title}_$chapter", page).apply(); reading = comic }, { key -> bookmarks.remove(key); preferences.edit().putStringSet("reader_bookmarks", bookmarks.toSet()).apply() }, Modifier.padding(padding))
                             "حساب" -> AccountScreen(Modifier.padding(padding))
                             else -> HomeScreen(
                                 savedCount = saved.size,
@@ -876,6 +877,47 @@ private fun setOfflinePreview(context: Context, comic: Comic, shouldDownload: Bo
     }
 }
 
+@Composable
+private fun BookmarkManagerScreen(bookmarks: List<String>, onOpen: (Comic, Int, Int) -> Unit, onRemove: (String) -> Unit, modifier: Modifier = Modifier) {
+    val entries = bookmarks.mapNotNull { key ->
+        val parts = key.split("#")
+        if (parts.size != 3) null else {
+            val comic = comics.firstOrNull { it.title == parts[0] }
+            val chapter = parts[1].toIntOrNull()
+            val page = parts[2].toIntOrNull()
+            if (comic == null || chapter == null || page == null) null else Triple(key, comic, chapter to page)
+        }
+    }.sortedWith(compareBy({ it.second.title }, { it.third.first }, { it.third.second }))
+    Column(modifier.fillMaxSize().padding(18.dp)) {
+        Text("نشانک‌های من", color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 6.dp))
+        Text("${entries.size} صفحه ذخیره‌شده", color = Muted, fontSize = 12.sp, modifier = Modifier.padding(bottom = 14.dp))
+        if (entries.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(Icons.Default.BookmarkBorder, null, tint = Purple, modifier = Modifier.size(48.dp))
+                    Spacer(Modifier.height(12.dp))
+                    Text("هنوز نشانکی نداری", color = Ink, fontWeight = FontWeight.Bold)
+                    Text("هنگام مطالعه، آیکون نشانک را بزن.", color = Muted, fontSize = 12.sp)
+                }
+            }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 20.dp)) {
+                items(entries, key = { it.first }) { entry ->
+                    val (key, comic, position) = entry
+                    Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(15.dp)).padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f).clickable { onOpen(comic, position.first, position.second) }) {
+                            Text(comic.title, color = Ink, fontWeight = FontWeight.Bold)
+                            Text("چپتر ${position.first} • صفحه ${position.second + 1}", color = Muted, fontSize = 12.sp)
+                        }
+                        IconButton(onClick = { onRemove(key) }) { Icon(Icons.Default.DeleteOutline, contentDescription = "حذف نشانک", tint = Muted) }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private fun normalizeSearchText(value: String): String = value.lowercase().replace('ي', 'ی').replace('ك', 'ک').replace("‌", " ").replace(Regex("\\s+"), " ").trim()
 @Composable private fun AccountScreen(modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().padding(22.dp)) {
         Text("حساب کاربری", color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
