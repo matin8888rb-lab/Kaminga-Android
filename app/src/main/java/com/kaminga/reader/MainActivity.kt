@@ -147,7 +147,11 @@ private fun KamingaApp() {
                     }) { padding ->
                         when(tab) {
                             "جست‌وجو" -> SearchScreen(query, { query = it }, genre, { genre = it }, comics.filter { (it.title + it.english + it.genre).contains(query, true) && (genre == "همه" || it.genre == genre) }, { selected = it }, Modifier.padding(padding))
-                            "کتابخانه" -> LibraryScreen(comics.filter { saved.contains(it.title) }, { selected = it }, Modifier.padding(padding))
+                            "کتابخانه" -> LibraryScreen(
+                                comics.filter { saved.contains(it.title) || downloaded.contains(it.title) },
+                                { selected = it },
+                                Modifier.padding(padding)
+                            )
                             "حساب" -> AccountScreen(Modifier.padding(padding))
                             else -> HomeScreen(saved.size, { tab = "جست‌وجو" }, { selected = it }, Modifier.padding(padding))
                         }
@@ -301,7 +305,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
 @Composable private fun LibraryScreen(comicsSaved: List<Comic>, onOpen: (Comic) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().padding(18.dp)) {
         Text("کتابخانه من", color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
-        Text("داستان‌هایی که ذخیره کرده‌ای", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 18.dp))
+        Text("داستان‌های ذخیره‌شده و پیش‌نمایش‌های آفلاین", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 18.dp))
         if (comicsSaved.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -456,7 +460,12 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
             }
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { page = (page - 1).coerceAtLeast(0) }, enabled = page > 0, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) { Text("صفحه قبل") }
+                OutlinedButton(
+                    onClick = { if (page > 0) page-- else onPrevious() },
+                    enabled = page > 0 || chapter > 1,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) { Text(if (page > 0) "صفحه قبل" else "فصل قبلی") }
                 Button(
                     onClick = { if (page < pages.lastIndex) page++ else if (chapter < comic.chapters) onNext() },
                     enabled = page < pages.lastIndex || chapter < comic.chapters,
