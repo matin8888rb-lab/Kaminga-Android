@@ -249,6 +249,7 @@ private fun KamingaApp() {
                                     .filter { preferences.getLong("opened_${it.title}", 0L) > 0L }
                                     .sortedByDescending { preferences.getLong("opened_${it.title}", 0L) },
                                 onSearch = { tab = "جست‌وجو" },
+                                onGenre = { selectedGenre -> genre = selectedGenre; tab = "جست‌وجو" },
                                 onOpen = { selected = it },
                                 modifier = Modifier.padding(padding)
                             )
@@ -265,6 +266,7 @@ private fun HomeScreen(
     savedCount: Int,
     recentlyRead: List<Comic>,
     onSearch: () -> Unit,
+    onGenre: (String) -> Unit,
     onOpen: (Comic) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -293,6 +295,25 @@ private fun HomeScreen(
                 Text("دنیای داستان‌ها", color = Ink, fontSize = 27.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(5.dp))
                 Text("کمیک، مانگا و مانهوا را کشف کن.", color = Muted, fontSize = 13.sp)
+            }
+        }
+        item {
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listOf("ابرقهرمانی", "مانگا", "مانهوا", "علمی‌تخیلی", "معمایی").forEach { category ->
+                    AssistChip(
+                        onClick = { onGenre(category) },
+                        label = { Text(category, fontSize = 11.sp) },
+                        leadingIcon = { Icon(Icons.Default.Explore, null, modifier = Modifier.size(15.dp)) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            containerColor = Panel,
+                            labelColor = Ink,
+                            leadingIconContentColor = Cyan
+                        )
+                    )
+                }
             }
         }
         if (recentlyRead.isNotEmpty()) {
