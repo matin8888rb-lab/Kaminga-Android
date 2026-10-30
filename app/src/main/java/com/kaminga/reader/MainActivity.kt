@@ -50,7 +50,7 @@ private val Line = Color(0xFFD5E4E9)
 private val Ink = Color(0xFF203744)
 
 private data class Comic(val title: String, val english: String, val genre: String, val description: String, val symbol: String, val accent: Color, val chapters: Int)
-private val comics = listOf(
+private val defaultComics = listOf(
     Comic("سقوط ستاره‌ها", "STARFALL", "علمی‌تخیلی", "وقتی آخرین ستاره خاموش می‌شود، یک پیام ناشناس مسیر سرنوشت بشر را تغییر می‌دهد.", "✦", Purple, 12),
     Comic("نگهبان شب", "NIGHTWARD", "ابرقهرمانی", "قهرمانی تازه‌کار باید میان قدرت و مسئولیت انتخاب کند.", "◈", Cyan, 8),
     Comic("شهر بی‌صدا", "SILENT CITY", "معمایی", "در شهری خاموش، یک دانش‌آموز رازی قدیمی را پیدا می‌کند.", "⌁", Color(0xFFFFB86B), 16),
@@ -88,6 +88,23 @@ private fun KamingaApp() {
         }
     }
     val preferences = remember { context.getSharedPreferences("kaminga_local", Context.MODE_PRIVATE) }
+    val allComics = remember {
+        mutableStateListOf<Comic>().apply {
+            addAll(defaultComics)
+            try {
+                val array = org.json.JSONArray(preferences.getString("custom_comics_v1", "[]") ?: "[]")
+                for (i in 0 until array.length()) {
+                    val item = array.getJSONObject(i)
+                    val title = item.optString("title").trim()
+                    if (title.isNotEmpty() && none { it.title == title }) {
+                        add(Comic(title, item.optString("english"), item.optString("genre", "متفرقه"),
+                            item.optString("description"), "▣", Cyan, item.optInt("chapters", 1).coerceIn(1, 300)))
+                    }
+                }
+            } catch (_: Exception) { }
+        }
+    }
+    var showAddComic by remember { mutableStateOf(false) }
     val saved = remember {
         mutableStateListOf<String>().apply {
             addAll(preferences.getStringSet("saved_comics", emptySet())?.toList() ?: emptyList())
@@ -105,7 +122,7 @@ private fun KamingaApp() {
     }
     val imagePageCounts = remember {
         mutableStateMapOf<String, Int>().apply {
-            comics.forEach { comic ->
+            allComics.forEach { comic ->
                 for (chapter in 1..comic.chapters) {
                     val key = "${comic.title}#${chapter}"
                     val count = preferences.getInt("image_pages_${comic.title}_${chapter}", 0)
@@ -124,7 +141,7 @@ private fun KamingaApp() {
         val title = importTargetTitle
         val chapter = importTargetChapter
         if (title != null && uri != null) {
-            val comic = comics.firstOrNull { it.title == title }
+            val comic = allComics.firstOrNull { it.title == title }
             if (comic != null) {
                 val imported = ZipComicImporter.import(context, uri, comicImageDirectory(context, comic, chapter))
                 if (imported > 0) {
@@ -142,7 +159,7 @@ private fun KamingaApp() {
         val title = importTargetTitle
         val chapter = importTargetChapter
         if (title != null && uris.isNotEmpty()) {
-            val comic = comics.firstOrNull { it.title == title }
+            val comic = allComics.firstOrNull { it.title == title }
             if (comic != null) {
                 val key = "$title#$chapter"
                 val imported = copyComicImages(context, comic, chapter, uris)
@@ -257,10 +274,11 @@ private fun KamingaApp() {
                             }
                         }
                     }) { padding ->
+                        Box(Modifier.fillMaxSize()) {
                         when(tab) {
-                            "جست‌وجو" -> SearchScreen(query, { query = it }, genre, { genre = it }, comics.filter { (it.title + it.english + it.genre).contains(query, true) && (genre == "همه" || it.genre == genre) }, { selected = it }, Modifier.padding(padding))
+                            "جست‌وجو" -> SearchScreen(query, { query = it }, genre, { genre = it }, allComics.filter { (it.title + it.english + it.genre).contains(query, true) && (genre == "همه" || it.genre == genre) }, { selected = it }, Modifier.padding(padding))
                             "کتابخانه" -> LibraryScreen(
-                                comics.filter { saved.contains(it.title) || downloaded.contains(it.title) },
+                                allComics.filter { saved.contains(it.title) || downloaded.contains(it.title) },
                                 saved.toSet(),
                                 downloaded.toSet(),
                                 { comic ->
@@ -274,11 +292,13 @@ private fun KamingaApp() {
                                 { selected = it },
                                 Modifier.padding(padding)
                             )
-                            "نشانک‌ها" -> BookmarkManagerScreen(bookmarks.toList(), { comic, chapter, page -> readingChapter = chapter; preferences.edit().putInt("page_${comic.title}_$chapter", page).apply(); reading = comic }, { key -> bookmarks.remove(key); preferences.edit().putStringSet("reader_bookmarks", bookmarks.toSet()).apply() }, Modifier.padding(padding))
-                            "حساب" -> AccountScreen(saved.size, bookmarks.size, downloaded.size, comics.filter { preferences.getLong("opened_${it.title}", 0L) > 0L }, { preferences.getInt("progress_${it.title}", 1) }, Modifier.padding(padding))
+                            "نشانک‌ها" -> BookmarkManagerScreen(allComics, bookmarks.toList(), { comic, chapter, page -> readingChapter = chapter; preferences.edit().putInt("page_${comic.title}_$chapter", page).apply(); reading = comic }, { key -> bookmarks.remove(key); preferences.edit().putStringSet("reader_bookmarks", bookmarks.toSet()).apply() }, Modifier.padding(padding))
+                            "حساب" -> AccountScreen(saved.size, bookmarks.size, downloaded.size, allComics.filter { preferences.getLong("opened_${it.title}", 0L) > 0L }, { preferences.getInt("progress_${it.title}", 1) }, Modifier.padding(padding))
                             else -> HomeScreen(
+                                comics = allComics,
+                                onAddComic = { showAddComic = true },
                                 savedCount = saved.size,
-                                recentlyRead = comics
+                                recentlyRead = allComics
                                     .filter { preferences.getLong("opened_${it.title}", 0L) > 0L }
                                     .sortedByDescending { preferences.getLong("opened_${it.title}", 0L) },
                                 onSearch = { tab = "جست‌وجو" },
@@ -312,6 +332,7 @@ private fun KamingaApp() {
                                     }
                                 }
                             )
+                        }
                         }
                     }
                 }
@@ -360,6 +381,8 @@ private fun AddComicDialog(
 
 @Composable
 private fun HomeScreen(
+    comics: List<Comic>,
+    onAddComic: () -> Unit,
     savedCount: Int,
     recentlyRead: List<Comic>,
     onSearch: () -> Unit,
@@ -382,8 +405,14 @@ private fun HomeScreen(
                     Text("KAMINGA", color = Ink, fontSize = 24.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                     Text("داستانی برای هر سلیقه", color = Muted, fontSize = 12.sp)
                 }
-                IconButton(onClick = onSearch, modifier = Modifier.background(Panel, CircleShape)) {
-                    Icon(Icons.Default.Search, contentDescription = "جست‌وجو", tint = Ink)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onAddComic, modifier = Modifier.background(Panel, CircleShape)) {
+                        Icon(Icons.Default.Add, contentDescription = "افزودن اثر", tint = Cyan)
+                    }
+                    Spacer(Modifier.width(7.dp))
+                    IconButton(onClick = onSearch, modifier = Modifier.background(Panel, CircleShape)) {
+                        Icon(Icons.Default.Search, contentDescription = "جست‌وجو", tint = Ink)
+                    }
                 }
             }
         }
@@ -982,11 +1011,11 @@ private fun setOfflinePreview(context: Context, comic: Comic, shouldDownload: Bo
 }
 
 @Composable
-private fun BookmarkManagerScreen(bookmarks: List<String>, onOpen: (Comic, Int, Int) -> Unit, onRemove: (String) -> Unit, modifier: Modifier = Modifier) {
+private fun BookmarkManagerScreen(allComics: List<Comic>, bookmarks: List<String>, onOpen: (Comic, Int, Int) -> Unit, onRemove: (String) -> Unit, modifier: Modifier = Modifier) {
     val entries = bookmarks.mapNotNull { key ->
         val parts = key.split("#")
         if (parts.size != 3) null else {
-            val comic = comics.firstOrNull { it.title == parts[0] }
+            val comic = allComics.firstOrNull { it.title == parts[0] }
             val chapter = parts[1].toIntOrNull()
             val page = parts[2].toIntOrNull()
             if (comic == null || chapter == null || page == null) null else Triple(key, comic, chapter to page)
