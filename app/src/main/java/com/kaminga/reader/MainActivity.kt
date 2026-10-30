@@ -121,17 +121,17 @@ private fun HomeScreen(savedCount: Int, onSearch: () -> Unit, onOpen: (Comic) ->
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("KAMINGA", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                    Text("KAMINGA", color = Ink, fontSize = 24.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                     Text("داستانی برای هر سلیقه", color = Muted, fontSize = 12.sp)
                 }
                 IconButton(onClick = onSearch, modifier = Modifier.background(Panel, CircleShape)) {
-                    Icon(Icons.Default.Search, contentDescription = "جست‌وجو", tint = Color.White)
+                    Icon(Icons.Default.Search, contentDescription = "جست‌وجو", tint = Ink)
                 }
             }
         }
         item {
             Column(Modifier.padding(horizontal = 18.dp)) {
-                Text("دنیای داستان‌ها", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.Bold)
+                Text("دنیای داستان‌ها", color = Ink, fontSize = 27.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(5.dp))
                 Text("کمیک، مانگا و مانهوا را کشف کن.", color = Muted, fontSize = 13.sp)
             }
@@ -162,7 +162,7 @@ private fun HomeScreen(savedCount: Int, onSearch: () -> Unit, onOpen: (Comic) ->
 private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen: (Comic) -> Unit) {
     Column {
         Column(Modifier.padding(horizontal = 18.dp)) {
-            Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(title, color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(3.dp))
             Text(note, color = Muted, fontSize = 11.sp)
         }
@@ -175,7 +175,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                 Column(Modifier.width(124.dp).clickable { onOpen(comic) }) {
                     Cover(comic, Modifier.fillMaxWidth().height(166.dp))
                     Spacer(Modifier.height(8.dp))
-                    Text(comic.title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(comic.title, color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Spacer(Modifier.height(3.dp))
                     Text(comic.genre, color = comic.accent, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text("${comic.chapters} فصل", color = Muted, fontSize = 10.sp)
@@ -187,7 +187,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
 
 @Composable private fun Heading(title: String, note: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(title, color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
         Text(note, color = Cyan, fontSize = 11.sp)
     }
 }
@@ -196,7 +196,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
     Box(modifier.background(Brush.linearGradient(listOf(comic.accent.copy(alpha = .6f), Color(0xFF11172B))), RoundedCornerShape(15.dp)), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(comic.symbol, color = Color.White, fontSize = 40.sp)
-            Text(comic.english, color = Color.White.copy(alpha = .8f), fontSize = 8.sp, letterSpacing = 1.sp)
+            Text(comic.english, color = Color.White.copy(alpha = .9f), fontSize = 8.sp, letterSpacing = 1.sp)
         }
     }
 }
@@ -207,7 +207,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
         Spacer(Modifier.width(13.dp))
         Column(Modifier.weight(1f)) {
             Text(comic.english, color = comic.accent, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            Text(comic.title, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+            Text(comic.title, color = Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(7.dp))
             Text(comic.description, color = Muted, fontSize = 12.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, lineHeight = 18.sp)
             Spacer(Modifier.height(8.dp))
@@ -221,7 +221,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
         Cover(comic, Modifier.width(76.dp).height(98.dp))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(comic.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(comic.title, color = Ink, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Text(comic.english, color = comic.accent, fontSize = 10.sp, letterSpacing = 1.sp)
             Spacer(Modifier.height(5.dp))
             Text(comic.description, color = Muted, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -235,8 +235,8 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
 @Composable private fun SearchScreen(query: String, onQuery: (String) -> Unit, genre: String, onGenre: (String) -> Unit, results: List<Comic>, onOpen: (Comic) -> Unit, modifier: Modifier = Modifier) {
     val genres = listOf("همه", "ابرقهرمانی", "مانگا", "مانهوا", "علمی‌تخیلی", "معمایی")
     Column(modifier.fillMaxSize().padding(horizontal = 18.dp)) {
-        Text("جست‌وجو و کشف", color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 25.dp, bottom = 16.dp))
-        OutlinedTextField(value = query, onValueChange = onQuery, modifier = Modifier.fillMaxWidth(), placeholder = { Text("نام داستان یا ژانر...", color = Muted) }, leadingIcon = { Icon(Icons.Default.Search, null, tint = Cyan) }, singleLine = true, shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Purple, unfocusedBorderColor = Line, focusedTextColor = Color.White, unfocusedTextColor = Color.White))
+        Text("جست‌وجو و کشف", color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 25.dp, bottom = 16.dp))
+        OutlinedTextField(value = query, onValueChange = onQuery, modifier = Modifier.fillMaxWidth(), placeholder = { Text("نام داستان یا ژانر...", color = Muted) }, leadingIcon = { Icon(Icons.Default.Search, null, tint = Cyan) }, singleLine = true, shape = RoundedCornerShape(16.dp), colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Purple, unfocusedBorderColor = Line, focusedTextColor = Ink, unfocusedTextColor = Ink))
         Spacer(Modifier.height(12.dp))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
             genres.forEach { g -> FilterChip(selected = genre == g, onClick = { onGenre(g) }, label = { Text(g) }, colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Purple, selectedLabelColor = Night, labelColor = Muted)) }
@@ -249,14 +249,14 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
 
 @Composable private fun LibraryScreen(comicsSaved: List<Comic>, onOpen: (Comic) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().padding(18.dp)) {
-        Text("کتابخانه من", color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
+        Text("کتابخانه من", color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 6.dp))
         Text("داستان‌هایی که ذخیره کرده‌ای", color = Muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 18.dp))
         if (comicsSaved.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(Icons.Default.Bookmarks, null, tint = Purple, modifier = Modifier.size(48.dp))
                     Spacer(Modifier.height(12.dp))
-                    Text("کتابخانه‌ات هنوز خالی است", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("کتابخانه‌ات هنوز خالی است", color = Ink, fontWeight = FontWeight.Bold)
                     Text("از صفحه جزئیات، داستان‌ها را ذخیره کن.", color = Muted, fontSize = 12.sp)
                 }
             }
@@ -267,8 +267,8 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
 @Composable private fun DetailScreen(comic: Comic, isSaved: Boolean, onSave: () -> Unit, onRead: (Int) -> Unit, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowForward, "بازگشت", tint = Color.White) }
-            Text("جزئیات داستان", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowForward, "بازگشت", tint = Ink) }
+            Text("جزئیات داستان", color = Ink, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
         Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -276,21 +276,21 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                 Spacer(Modifier.width(15.dp))
                 Column(Modifier.weight(1f)) {
                     Text(comic.english, color = comic.accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    Text(comic.title, color = Color.White, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+                    Text(comic.title, color = Ink, fontSize = 23.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(8.dp))
                     Text(comic.genre, color = Cyan, fontSize = 13.sp)
                     Text(comic.chapters.toString() + " فصل • نسخه نمایشی", color = Muted, fontSize = 11.sp)
                 }
             }
             Spacer(Modifier.height(22.dp))
-            Text("درباره داستان", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("درباره داستان", color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(8.dp))
             Text(comic.description, color = Muted, fontSize = 14.sp, lineHeight = 23.sp)
             Spacer(Modifier.height(20.dp))
             Button(onClick = { onRead(1) }, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink), shape = RoundedCornerShape(15.dp)) { Icon(Icons.Default.MenuBook, null); Spacer(Modifier.width(8.dp)); Text("شروع مطالعه", fontWeight = FontWeight.Bold) }
-            OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp), shape = RoundedCornerShape(15.dp)) { Icon(if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, null, tint = Cyan); Spacer(Modifier.width(8.dp)); Text(if (isSaved) "حذف از کتابخانه" else "ذخیره در کتابخانه", color = Color.White) }
+            OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp), shape = RoundedCornerShape(15.dp)) { Icon(if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, null, tint = Cyan); Spacer(Modifier.width(8.dp)); Text(if (isSaved) "حذف از کتابخانه" else "ذخیره در کتابخانه", color = Ink) }
             Spacer(Modifier.height(20.dp))
-            Text("فصل‌ها", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("فصل‌ها", color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(7.dp))
             Text("یک فصل را برای باز کردن پیش‌نمایش انتخاب کن.", color = Muted, fontSize = 12.sp)
             Spacer(Modifier.height(10.dp))
@@ -304,7 +304,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                                 shape = RoundedCornerShape(12.dp),
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
                             ) {
-                                Text("فصل $chapterNumber", color = Color.White, fontSize = 12.sp)
+                                Text("فصل $chapterNumber", color = Ink, fontSize = 12.sp)
                             }
                         }
                         if (pair.size == 1) Spacer(Modifier.weight(1f))
@@ -318,8 +318,8 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
 @Composable private fun ReaderScreen(comic: Comic, chapter: Int, mode: String, onMode: (String) -> Unit, onPrevious: () -> Unit, onNext: () -> Unit, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowForward, "بازگشت", tint = Color.White) }
-            Column { Text(comic.title, color = Color.White, fontWeight = FontWeight.Bold); Text("فصل $chapter از ${comic.chapters} • پیش‌نمایش", color = Muted, fontSize = 11.sp) }
+            IconButton(onClick = onBack) { Icon(Icons.Default.ArrowForward, "بازگشت", tint = Ink) }
+            Column { Text(comic.title, color = Ink, fontWeight = FontWeight.Bold); Text("فصل $chapter از ${comic.chapters} • پیش‌نمایش", color = Muted, fontSize = 11.sp) }
         }
         Spacer(Modifier.height(15.dp))
         Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(14.dp)).padding(5.dp)) {
@@ -332,10 +332,10 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(comic.symbol, color = comic.accent, fontSize = 72.sp)
                 Spacer(Modifier.height(15.dp))
-                Text(comic.english, color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                Text(comic.english, color = Ink, fontSize = 24.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                 Text("پیش‌نمایش محیط مطالعه", color = Cyan, fontSize = 13.sp)
                 Spacer(Modifier.height(22.dp))
-                Text("فصل $chapter", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("فصل $chapter", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
                 Text("حالت " + mode + " انتخاب شده است.", color = Muted, fontSize = 13.sp)
                 Spacer(Modifier.height(8.dp))
@@ -354,12 +354,12 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
 
 @Composable private fun AccountScreen(modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().padding(22.dp)) {
-        Text("حساب کاربری", color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
+        Text("حساب کاربری", color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
         Text("پروفایل کامینگا در حال آماده‌سازی است.", color = Muted, fontSize = 13.sp)
         Spacer(Modifier.height(24.dp))
         Box(Modifier.size(76.dp).background(PanelHigh, CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.Person, null, tint = Cyan, modifier = Modifier.size(40.dp)) }
         Spacer(Modifier.height(18.dp))
-        Text("ورود و ثبت‌نام هنوز فعال نیست", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+        Text("ورود و ثبت‌نام هنوز فعال نیست", color = Ink, fontWeight = FontWeight.Bold, fontSize = 17.sp)
         Spacer(Modifier.height(8.dp))
         Text("در مرحله بعد معماری حساب کاربری را بررسی می‌کنیم. تأیید پیامکی به سرویس جداگانه و احتمالاً هزینه نیاز دارد.", color = Muted, fontSize = 13.sp, lineHeight = 21.sp)
         Spacer(Modifier.height(20.dp))
@@ -367,7 +367,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
             Icon(Icons.Default.Security, null, tint = Purple)
             Spacer(Modifier.width(12.dp))
             Column {
-                Text("امنیت و حریم خصوصی", color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text("امنیت و حریم خصوصی", color = Ink, fontWeight = FontWeight.SemiBold)
                 Text("اطلاعات حساس در نسخه نمایشی ذخیره نمی‌شود.", color = Muted, fontSize = 11.sp)
             }
         }
