@@ -120,6 +120,22 @@ private fun KamingaApp() {
     }
     var importTargetTitle by remember { mutableStateOf<String?>(null) }
     var importTargetChapter by remember { mutableIntStateOf(1) }
+    val zipPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val title = importTargetTitle
+        val chapter = importTargetChapter
+        if (title != null && uri != null) {
+            val comic = comics.firstOrNull { it.title == title }
+            if (comic != null) {
+                val imported = ZipComicImporter.import(context, uri, comicImageDirectory(context, comic, chapter))
+                if (imported > 0) {
+                    imagePageCounts["${title}#${chapter}"] = imported
+                    preferences.edit().putInt("image_pages_${title}_${chapter}", imported).apply()
+                    android.widget.Toast.makeText(context, "$imported صفحه از ZIP وارد شد.", android.widget.Toast.LENGTH_LONG).show()
+                } else android.widget.Toast.makeText(context, "ZIP قابل‌خواندن نبود؛ صفحات قبلی حفظ شدند.", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+        importTargetTitle = null
+    }
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
@@ -187,6 +203,11 @@ private fun KamingaApp() {
                             importTargetTitle = selected!!.title
                             importTargetChapter = chapter
                             imagePicker.launch(arrayOf("image/*"))
+                        },
+                        onImportZip = { chapter ->
+                            importTargetTitle = selected!!.title
+                            importTargetChapter = chapter
+                            zipPicker.launch(arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
                         },
                         onRemoveImages = { chapter ->
                             val title = selected!!.title
@@ -515,6 +536,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
     importedImagePages: Int,
     chapterImageCounts: Map<Int, Int>,
     onImportImages: (Int) -> Unit,
+    onImportZip: (Int) -> Unit,
     onRemoveImages: (Int) -> Unit,
     resumeChapter: Int,
     onSave: () -> Unit,
@@ -609,6 +631,15 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
                                     Icon(Icons.Default.Collections, null, tint = Cyan, modifier = Modifier.size(14.dp))
                                     Spacer(Modifier.width(3.dp))
                                     Text(if ((chapterImageCounts[chapterNumber] ?: 0) > 0) "${chapterImageCounts[chapterNumber]} صفحه • تغییر" else "افزودن تصاویر", color = Cyan, fontSize = 10.sp)
+                                }
+                                TextButton(
+                                    onClick = { onImportZip(chapterNumber) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    contentPadding = PaddingValues(2.dp)
+                                ) {
+                                    Icon(Icons.Default.FolderZip, null, tint = Purple, modifier = Modifier.size(14.dp))
+                                    Spacer(Modifier.width(3.dp))
+                                    Text("ورود ZIP با ساختار دلخواه", color = Purple, fontSize = 10.sp)
                                 }
                                 if ((chapterImageCounts[chapterNumber] ?: 0) > 0) {
                                     TextButton(
