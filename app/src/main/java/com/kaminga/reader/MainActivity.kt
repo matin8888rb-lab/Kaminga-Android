@@ -97,33 +97,80 @@ private fun KamingaApp() {
 
 @Composable
 private fun HomeScreen(savedCount: Int, onSearch: () -> Unit, onOpen: (Comic) -> Unit, modifier: Modifier = Modifier) {
-    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(18.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    LazyColumn(
+        modifier.fillMaxSize(),
+        contentPadding = PaddingValues(top = 20.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 18.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Column {
-                    Text("KAMINGA", color = Color.White, fontSize = 25.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
-                    Text("دنیای داستان‌ها، یک صفحه دورتر", color = Muted, fontSize = 12.sp)
+                    Text("KAMINGA", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
+                    Text("داستانی برای هر سلیقه", color = Muted, fontSize = 12.sp)
                 }
-                Box(Modifier.size(46.dp).background(PanelHigh, CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Default.AutoAwesome, null, tint = Cyan, modifier = Modifier.size(25.dp)) }
+                IconButton(onClick = onSearch, modifier = Modifier.background(Panel, CircleShape)) {
+                    Icon(Icons.Default.Search, contentDescription = "جست‌وجو", tint = Color.White)
+                }
             }
         }
         item {
-            Row(Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFF34265F), Color(0xFF152C48))), RoundedCornerShape(24.dp)).padding(18.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("داستان بعدی‌ات\nاینجاست.", color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Bold, lineHeight = 31.sp)
-                    Spacer(Modifier.height(8.dp))
-                    Text("مانگا، مانهوا و کمیک در یک کتابخانه", color = Color(0xFFD9D9F0), fontSize = 12.sp)
-                    Spacer(Modifier.height(14.dp))
-                    Button(onClick = onSearch, colors = ButtonDefaults.buttonColors(containerColor = Cyan, contentColor = Night)) { Text("کشف داستان‌ها", fontWeight = FontWeight.Bold); Icon(Icons.Default.ArrowBack, null, modifier = Modifier.padding(start = 6.dp).size(17.dp)) }
-                }
-                Box(Modifier.size(70.dp).background(Color(0x337F70FF), CircleShape), contentAlignment = Alignment.Center) { Text("✦", color = Cyan, fontSize = 50.sp) }
+            Column(Modifier.padding(horizontal = 18.dp)) {
+                Text("دنیای داستان‌ها", color = Color.White, fontSize = 27.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(5.dp))
+                Text("کمیک، مانگا و مانهوا را کشف کن.", color = Muted, fontSize = 13.sp)
             }
         }
-        item { Heading("پیشنهاد کامینگا", "برای شروع") }
-        item { Featured(comics.first(), { onOpen(comics.first()) }) }
-        item { Heading("تازه برای تو", "نسخه نمایشی") }
-        items(comics.drop(1)) { ComicRow(it) { onOpen(it) } }
-        item { Text("نسخه آغازین • " + savedCount + " عنوان ذخیره‌شده", color = Muted, fontSize = 11.sp) }
+        item {
+            Column {
+                Heading("پیشنهاد کامینگا", "منتخب")
+                Spacer(Modifier.height(12.dp))
+                Featured(comics.first(), { onOpen(comics.first()) }, Modifier.padding(horizontal = 18.dp))
+            }
+        }
+        item { ComicRail("تازه‌ترین‌ها", "به‌تازگی اضافه‌شده", comics.reversed(), onOpen) }
+        item { ComicRail("ابرقهرمانی", "قهرمان‌ها و ماجراجویی", comics.filter { it.genre == "ابرقهرمانی" || it.genre == "علمی‌تخیلی" }, onOpen) }
+        item { ComicRail("مانگا و مانهوا", "داستان‌های آسیایی", comics.filter { it.genre == "مانگا" || it.genre == "مانهوا" }, onOpen) }
+        item { ComicRail("معمایی و فانتزی", "رازهایی برای کشف", comics.filter { it.genre == "معمایی" || it.genre == "علمی‌تخیلی" }, onOpen) }
+        item {
+            Text(
+                "نسخه نمایشی • $savedCount عنوان ذخیره‌شده",
+                color = Muted,
+                fontSize = 11.sp,
+                modifier = Modifier.padding(horizontal = 18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen: (Comic) -> Unit) {
+    Column {
+        Column(Modifier.padding(horizontal = 18.dp)) {
+            Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(3.dp))
+            Text(note, color = Muted, fontSize = 11.sp)
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 18.dp)
+        ) {
+            entries.forEach { comic ->
+                Column(Modifier.width(124.dp).clickable { onOpen(comic) }) {
+                    Cover(comic, Modifier.fillMaxWidth().height(166.dp))
+                    Spacer(Modifier.height(8.dp))
+                    Text(comic.title, color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Spacer(Modifier.height(3.dp))
+                    Text(comic.genre, color = comic.accent, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text("${comic.chapters} فصل", color = Muted, fontSize = 10.sp)
+                }
+            }
+        }
     }
 }
 
@@ -143,8 +190,8 @@ private fun HomeScreen(savedCount: Int, onSearch: () -> Unit, onOpen: (Comic) ->
     }
 }
 
-@Composable private fun Featured(comic: Comic, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(22.dp)).clickable(onClick = onClick).padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+@Composable private fun Featured(comic: Comic, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier.fillMaxWidth().background(Panel, RoundedCornerShape(18.dp)).clickable(onClick = onClick).padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
         Cover(comic, Modifier.width(102.dp).height(140.dp))
         Spacer(Modifier.width(13.dp))
         Column(Modifier.weight(1f)) {
