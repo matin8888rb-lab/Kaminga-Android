@@ -412,3 +412,28 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
         Text("محتوای نمونه برای آزمایش مطالعه • کمیک اصلی هنوز اضافه نشده", color = Muted, fontSize = 10.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
     }
 }
+
+
+@Composable private fun AccountScreen(modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxSize().padding(22.dp)) {
+        Text("حساب کاربری", color = Ink, fontSize = 25.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
+        Text("پروفایل کامینگا در حال آماده‌سازی است.", color = Muted, fontSize = 13.sp)
+        Spacer(Modifier.height(24.dp))
+        Box(Modifier.size(76.dp).background(PanelHigh, CircleShape), contentAlignment = Alignment.Center) {
+            Icon(Icons.Default.Person, null, tint = Cyan, modifier = Modifier.size(40.dp))
+        }
+        Spacer(Modifier.height(18.dp))
+        Text("ورود و ثبت‌نام هنوز فعال نیست", color = Ink, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+        Spacer(Modifier.height(8.dp))
+        Text("در مرحله بعد معماری حساب کاربری را بررسی می‌کنیم. تأیید پیامکی به سرویس جداگانه و احتمالاً هزینه نیاز دارد.", color = Muted, fontSize = 13.sp, lineHeight = 21.sp)
+        Spacer(Modifier.height(20.dp))
+        Row(Modifier.fillMaxWidth().background(Panel, RoundedCornerShape(16.dp)).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Security, null, tint = Purple)
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text("امنیت و حریم خصوصی", color = Ink, fontWeight = FontWeight.SemiBold)
+                Text("اطلاعات حساس در نسخه نمایشی ذخیره نمی‌شود.", color = Muted, fontSize = 11.sp)
+            }
+        }
+    }
+}
