@@ -421,7 +421,9 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowForward, "بازگشت", tint = Ink) }
             Text("جزئیات داستان", color = Ink, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
-        Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+        Column(
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Cover(comic, Modifier.width(126.dp).height(175.dp))
                 Spacer(Modifier.width(15.dp))
