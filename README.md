@@ -3,8 +3,8 @@
 A fresh native Android project for Kaminga, built with Kotlin and Jetpack Compose.
 
 ## Current milestone
-- Native Android app shell with a dark purple/cyan design.
-- Demo home screen, comic details, genre filtering, local library saves, and reader layout toggle.
+- Native Android app shell with a soft blue and mint-green light design.
+- Demo home screen, comic details, genre filtering, local library saves, reader layout toggle, and Android back navigation between screens.\n- Custom Kaminga launcher icon in a light blue / mint-green palette.
 - GitHub Actions workflow intended to build and upload a debug APK on pushes to `main`.
 
 ## Important status
