@@ -287,7 +287,7 @@ private fun ComicRail(title: String, note: String, entries: List<Comic>, onOpen:
             Spacer(Modifier.height(8.dp))
             Text(comic.description, color = Muted, fontSize = 14.sp, lineHeight = 23.sp)
             Spacer(Modifier.height(20.dp))
-            Button(onClick = { onRead(1) }, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Night), shape = RoundedCornerShape(15.dp)) { Icon(Icons.Default.MenuBook, null); Spacer(Modifier.width(8.dp)); Text("شروع مطالعه", fontWeight = FontWeight.Bold) }
+            Button(onClick = { onRead(1) }, modifier = Modifier.fillMaxWidth().height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = Purple, contentColor = Ink), shape = RoundedCornerShape(15.dp)) { Icon(Icons.Default.MenuBook, null); Spacer(Modifier.width(8.dp)); Text("شروع مطالعه", fontWeight = FontWeight.Bold) }
             OutlinedButton(onClick = onSave, modifier = Modifier.fillMaxWidth().padding(top = 8.dp).height(50.dp), shape = RoundedCornerShape(15.dp)) { Icon(if (isSaved) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, null, tint = Cyan); Spacer(Modifier.width(8.dp)); Text(if (isSaved) "حذف از کتابخانه" else "ذخیره در کتابخانه", color = Color.White) }
             Spacer(Modifier.height(20.dp))
             Text("فصل‌ها", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
