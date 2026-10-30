@@ -1,6 +1,7 @@
 package com.kaminga.reader
 
 import android.os.Bundle
+import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
@@ -22,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
@@ -60,7 +62,13 @@ private fun KamingaApp() {
     var selected by remember { mutableStateOf<Comic?>(null) }
     var reading by remember { mutableStateOf<Comic?>(null) }
     var mode by rememberSaveable { mutableStateOf("صفحه‌ای") }
-    val saved = remember { mutableStateListOf<String>() }
+    val context = LocalContext.current
+    val preferences = remember { context.getSharedPreferences("kaminga_local", Context.MODE_PRIVATE) }
+    val saved = remember {
+        mutableStateListOf<String>().apply {
+            addAll(preferences.getStringSet("saved_comics", emptySet())?.toList() ?: emptyList())
+        }
+    }
     MaterialTheme(colorScheme = darkColorScheme(primary = Purple, secondary = Cyan, background = Night, surface = Panel, onPrimary = Night, onBackground = Color.White, onSurface = Color.White)) {
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Surface(Modifier.fillMaxSize(), color = Night) {
@@ -68,6 +76,7 @@ private fun KamingaApp() {
                     reading != null -> ReaderScreen(reading!!, mode, { mode = it }, { reading = null })
                     selected != null -> DetailScreen(selected!!, saved.contains(selected!!.title), {
                         if (saved.contains(selected!!.title)) saved.remove(selected!!.title) else saved.add(selected!!.title)
+                        preferences.edit().putStringSet("saved_comics", saved.toSet()).apply()
                     }, { reading = selected }, { selected = null })
                     else -> Scaffold(containerColor = Night, bottomBar = {
                         NavigationBar(containerColor = Panel) {
