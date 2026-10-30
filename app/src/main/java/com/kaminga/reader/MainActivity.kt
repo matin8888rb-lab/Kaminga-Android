@@ -743,8 +743,14 @@ private fun demoChapterPages(comic: Comic, chapter: Int): List<String> {
 
 
 
-private fun comicImageDirectory(context: Context, comic: Comic, chapter: Int) =
-    java.io.File(context.filesDir, "comic_pages_${comic.title.hashCode()}_$chapter")
+private fun comicImageDirectory(context: Context, comic: Comic, chapter: Int): java.io.File {
+    val directory = java.io.File(context.filesDir, "comic_pages_${comic.title.hashCode()}_$chapter")
+    if (chapter == 1 && !directory.exists()) {
+        val legacyDirectory = java.io.File(context.filesDir, "comic_pages_${comic.title.hashCode()}")
+        if (legacyDirectory.exists()) legacyDirectory.renameTo(directory)
+    }
+    return directory
+}
 
 private fun comicImagePaths(context: Context, comic: Comic, chapter: Int): List<String> =
     comicImageDirectory(context, comic, chapter).listFiles()
