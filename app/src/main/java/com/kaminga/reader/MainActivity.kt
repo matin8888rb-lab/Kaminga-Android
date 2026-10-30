@@ -287,11 +287,75 @@ private fun KamingaApp() {
                                 modifier = Modifier.padding(padding)
                             )
                         }
+                        if (showAddComic) {
+                            AddComicDialog(
+                                onDismiss = { showAddComic = false },
+                                onSave = { title, english, genreName, description, chapters ->
+                                    if (allComics.none { it.title.equals(title, ignoreCase = true) }) {
+                                        val comic = Comic(title, english, genreName, description, "▣", Cyan, chapters)
+                                        allComics.add(comic)
+                                        val json = org.json.JSONArray()
+                                        allComics.drop(defaultComics.size).forEach { item ->
+                                            json.put(org.json.JSONObject().apply {
+                                                put("title", item.title)
+                                                put("english", item.english)
+                                                put("genre", item.genre)
+                                                put("description", item.description)
+                                                put("chapters", item.chapters)
+                                            })
+                                        }
+                                        preferences.edit().putString("custom_comics_v1", json.toString()).apply()
+                                        selected = comic
+                                        showAddComic = false
+                                    } else {
+                                        android.widget.Toast.makeText(context, "این عنوان قبلاً ثبت شده است.", android.widget.Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun AddComicDialog(
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, String, Int) -> Unit
+) {
+    var title by remember { mutableStateOf("") }
+    var english by remember { mutableStateOf("") }
+    var genreName by remember { mutableStateOf("مانگا") }
+    var description by remember { mutableStateOf("") }
+    var chaptersText by remember { mutableStateOf("1") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("افزودن اثر جدید", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                OutlinedTextField(title, { title = it }, label = { Text("عنوان فارسی *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(english, { english = it }, label = { Text("عنوان انگلیسی") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Text("ژانر", color = Muted, fontSize = 12.sp)
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("مانگا", "مانهوا", "ابرقهرمانی", "علمی‌تخیلی", "معمایی", "فانتزی", "متفرقه").forEach { item ->
+                        FilterChip(selected = genreName == item, onClick = { genreName = item }, label = { Text(item) })
+                    }
+                }
+                OutlinedTextField(description, { description = it }, label = { Text("توضیحات") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(chaptersText, { chaptersText = it.filter(Char::isDigit).take(3) }, label = { Text("تعداد فصل‌ها") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Text("بعد از ثبت، از صفحه جزئیات هر فصل می‌توانی صفحات یا فایل ZIP وارد کنی.", color = Muted, fontSize = 11.sp)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val count = chaptersText.toIntOrNull()
+                if (title.isNotBlank() && count != null && count in 1..300) onSave(title.trim(), english.trim(), genreName, description.trim(), count)
+            }, enabled = title.isNotBlank() && (chaptersText.toIntOrNull() ?: 0) in 1..300) { Text("ثبت اثر") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("انصراف") } }
+    )
 }
 
 @Composable
